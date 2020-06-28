@@ -378,7 +378,7 @@ class ElasticsearchDelegator {
         { path: 'creator', model: 'User', select: 'username' },
         { path: 'revision', model: 'Revision', select: 'body' },
       ])
-      .snapshot()
+      // .snapshot()
       .lean()
       .cursor();
 

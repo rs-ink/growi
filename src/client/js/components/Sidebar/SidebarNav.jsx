@@ -61,7 +61,7 @@ class SidebarNav extends React.Component {
     return (
       <div className="grw-sidebar-nav d-flex flex-column justify-content-between pb-4">
         <div className="grw-sidebar-nav-primary-container">
-          <PrimaryItem id="custom" label="Custom Sidebar" iconName="code" />
+          {/*<PrimaryItem id="custom" label="Custom Sidebar" iconName="code" />*/}
           <PrimaryItem id="recent" label="Recent Changes" iconName="update" />
           {/* <PrimaryItem id="tag" label="Tags" iconName="icon-tag" /> */}
           {/* <PrimaryItem id="favorite" label="Favorite" iconName="icon-star" /> */}
@@ -69,7 +69,7 @@ class SidebarNav extends React.Component {
         <div className="grw-sidebar-nav-secondary-container">
           {isAdmin && <SecondaryItem label="Admin" iconName="settings" href="/admin" />}
           {isLoggedIn && <SecondaryItem label="Draft" iconName="file_copy" href={`/user/${currentUsername}#user-draft-list`} />}
-          <SecondaryItem label="Help" iconName="help" href="https://docs.growi.org" isBlank />
+          {/*<SecondaryItem label="Help" iconName="help" href="https://docs.growi.org" isBlank />*/}
           {isLoggedIn && <SecondaryItem label="Trash" iconName="delete" href="/trash" />}
         </div>
       </div>
