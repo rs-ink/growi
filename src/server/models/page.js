@@ -52,8 +52,7 @@ const pageSchema = new mongoose.Schema({
     get(data) {
       try {
         return JSON.parse(data);
-      }
-      catch (e) {
+      } catch (e) {
         return data;
       }
     },
@@ -116,11 +115,14 @@ const populateDataToShowRevision = (page, userPublicFields) => {
       { path: 'lastUpdateUser', model: 'User', select: userPublicFields },
       { path: 'creator', model: 'User', select: userPublicFields },
       { path: 'grantedGroup', model: 'UserGroup' },
-      { path: 'revision', model: 'Revision', populate: {
-        path: 'author', model: 'User', select: userPublicFields,
-      } },
+      {
+        path: 'revision', model: 'Revision', populate: {
+          path: 'author', model: 'User', select: userPublicFields,
+        },
+      },
     ]);
 };
+
 /* eslint-enable object-curly-newline, object-property-newline */
 
 
@@ -128,6 +130,14 @@ class PageQueryBuilder {
 
   constructor(query) {
     this.query = query;
+  }
+
+  addConditionToExcludeUser() {
+    this.query = this.query.and({
+      path: {
+        $not: /user/,
+      },
+    });
   }
 
   addConditionToExcludeTrashed() {
@@ -192,7 +202,7 @@ class PageQueryBuilder {
     try {
       queryReg = new RegExp(`^${pattern}`);
     }
-    // if regular expression is invalid
+      // if regular expression is invalid
     catch (e) {
       // force to escape
       queryReg = new RegExp(`^${escapeStringRegexp(pattern)}`);
@@ -222,8 +232,7 @@ class PageQueryBuilder {
         { grant: GRANT_SPECIFIED },
         { grant: GRANT_OWNER },
       );
-    }
-    else if (user != null) {
+    } else if (user != null) {
       grantConditions.push(
         { grant: GRANT_SPECIFIED, grantedUsers: user._id },
         { grant: GRANT_OWNER, grantedUsers: user._id },
@@ -234,8 +243,7 @@ class PageQueryBuilder {
       grantConditions.push(
         { grant: GRANT_USER_GROUP },
       );
-    }
-    else if (userGroups != null && userGroups.length > 0) {
+    } else if (userGroups != null && userGroups.length > 0) {
       grantConditions.push(
         { grant: GRANT_USER_GROUP, grantedGroup: { $in: userGroups } },
       );
@@ -322,7 +330,9 @@ module.exports = function(crowi) {
   pageSchema.methods.findRelatedTagsById = async function() {
     const PageTagRelation = mongoose.model('PageTagRelation');
     const relations = await PageTagRelation.find({ relatedPage: this._id }).populate('relatedTag');
-    return relations.map((relation) => { return relation.relatedTag.name });
+    return relations.map((relation) => {
+      return relation.relatedTag.name;
+    });
   };
 
   pageSchema.methods.isUpdatable = function(previousRevision) {
@@ -358,8 +368,7 @@ module.exports = function(crowi) {
           logger.debug('liker updated!', added);
           return resolve(data);
         });
-      }
-      else {
+      } else {
         logger.debug('liker not updated');
         return reject(self);
       }
@@ -379,8 +388,7 @@ module.exports = function(crowi) {
           }
           return resolve(data);
         });
-      }
-      else {
+      } else {
         logger.debug('liker not updated');
         return reject(self);
       }
@@ -696,7 +704,6 @@ module.exports = function(crowi) {
   pageSchema.statics.findListWithDescendants = async function(path, user, option) {
     const builder = new PageQueryBuilder(this.find());
     builder.addConditionToListWithDescendants(path, option);
-
     return await findListFromBuilderAndViewer(builder, user, false, option);
   };
 
@@ -771,6 +778,9 @@ module.exports = function(crowi) {
     // exclude trashed pages
     if (!opt.includeTrashed) {
       builder.addConditionToExcludeTrashed();
+    }
+    if (opt.isExcludeUser) {
+      builder.addConditionToExcludeUser();
     }
     // exclude redirect pages
     if (!opt.includeRedirect) {
@@ -850,7 +860,7 @@ module.exports = function(crowi) {
    */
   pageSchema.statics.generateQueryToListByStartWith = function(path, user, option) {
     const dummyQuery = this.find();
-    dummyQuery.exec = async() => {
+    dummyQuery.exec = async () => {
       throw new Error('Plugin version mismatch. Upgrade growi-lsx-plugin to v2.0.0 or above.');
     };
     return dummyQuery;
@@ -910,7 +920,7 @@ module.exports = function(crowi) {
     return assignDecendantsTemplate(decendantsTemplates, newPath);
   };
 
-  const fetchTemplate = async(templates, templatePath) => {
+  const fetchTemplate = async (templates, templatePath) => {
     let templateBody;
     let templateTags;
     /**
@@ -928,8 +938,7 @@ module.exports = function(crowi) {
     if (childrenTemplate) {
       templateBody = childrenTemplate.revision.body;
       templateTags = await childrenTemplate.findRelatedTagsById();
-    }
-    else if (decendantsTemplate) {
+    } else if (decendantsTemplate) {
       templateBody = decendantsTemplate.revision.body;
       templateTags = await decendantsTemplate.findRelatedTagsById();
     }
@@ -1321,8 +1330,7 @@ module.exports = function(crowi) {
     if (isExist) {
       page.grantedGroup = transferToUserGroupId;
       await page.save();
-    }
-    else {
+    } else {
       throw new Error('Cannot find the group to which private pages belong to. _id: ', transferToUserGroupId);
     }
   };

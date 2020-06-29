@@ -12980,10 +12980,10 @@ rndm@1.2.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/rndm/-/rndm-1.2.0.tgz#f33fe9cfb52bbfd520aa18323bc65db110a1b76c"
 
-rs-i18n@^0.0.9:
-  version "0.0.9"
-  resolved "https://registry.yarnpkg.com/rs-i18n/-/rs-i18n-0.0.9.tgz#9975aa4ae8c3a7dee2e39b96d1a4b2929261ce4f"
-  integrity sha512-wPg9gaNHpRiuSJm5hJNO2zwqOmC9lRkdp3mr768DuCU3l+Ws+xk5Ut7+x2ekTpJJFe4WJuB/TwGWzZ0cmJ6jUQ==
+rs-i18n@^0.0.10:
+  version "0.0.10"
+  resolved "https://registry.yarnpkg.com/rs-i18n/-/rs-i18n-0.0.10.tgz#5316b4dd241a9b3bf0505d4df19462f79d848b36"
+  integrity sha512-Q7t23rGVuVloMvgWC1jGAz2ULSpjOo7rWsI5s7fWmp5YoJ3PrSegNLVz51zUQxeCGTTTe5EhJeiFgd3q5R6ZSg==
   dependencies:
     commander "^5.1.0"
     dotenv "^8.2.0"

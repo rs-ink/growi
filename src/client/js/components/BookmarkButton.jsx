@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import { toastError } from '../util/apiNotification';
+import { withTranslation } from 'react-i18next';
 
 class BookmarkButton extends React.Component {
 
@@ -57,12 +58,12 @@ class BookmarkButton extends React.Component {
     if (!this.isUserLoggedIn()) {
       return <div></div>;
     }
-
+    const {t} = this.props;
     return (
       <button
         type="button"
         href="#"
-        title="Bookmark"
+        title={t('Bookmark')}
         onClick={this.handleClick}
         className={`btn rounded-circle btn-bookmark border-0 d-edit-none
           ${`btn-${this.props.size}`}
@@ -85,4 +86,4 @@ BookmarkButton.defaultProps = {
   size: 'md',
 };
 
-export default BookmarkButton;
+export default withTranslation()(BookmarkButton);

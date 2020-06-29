@@ -7,7 +7,7 @@ import locales from '@root/resource/locales';
 // extract metadata list from 'resource/locales/${locale}/meta.json'
 export const localeMetadatas = Object.values(locales).map(locale => locale.meta);
 
-export const i18nFactory = (userLocaleId = 'en_US') => {
+export const i18nFactory = (userLocaleId = 'zh_CN') => {
   // setup LanguageDetector
   const langDetector = new LanguageDetector();
   langDetector.addDetector({
@@ -27,7 +27,7 @@ export const i18nFactory = (userLocaleId = 'en_US') => {
       resources: locales,
       load: 'currentOnly',
 
-      fallbackLng: 'en_US',
+      fallbackLng: 'zh_CN',
       detection: {
         order: ['userSettingDetector', 'querystring', 'localStorage'],
       },

@@ -6,9 +6,10 @@ import { UncontrolledTooltip } from 'reactstrap';
 import AppContainer from '../services/AppContainer';
 
 import { withUnstatedContainers } from './UnstatedUtils';
+import { withTranslation } from 'react-i18next';
 
 const NotAvailableForGuest = (props) => {
-  const { appContainer, children } = props;
+  const { appContainer, children, t } = props;
   const isLoggedin = appContainer.currentUser != null;
 
   if (isLoggedin) {
@@ -21,13 +22,14 @@ const NotAvailableForGuest = (props) => {
   const clonedChild = React.cloneElement(children, {
     id,
     className: `${children.props.className} grw-not-available-for-guest`,
-    onClick: () => { /* do nothing */ },
+    onClick: () => { /* do nothing */
+    },
   });
 
   return (
     <>
-      { clonedChild }
-      <UncontrolledTooltip placement="top" target={id}>Not available for guest</UncontrolledTooltip>
+      {clonedChild}
+      <UncontrolledTooltip placement="top" target={id}>{t('comment.Not available for guest')}</UncontrolledTooltip>
     </>
   );
 
@@ -37,5 +39,5 @@ NotAvailableForGuest.propTypes = {
   appContainer: PropTypes.instanceOf(AppContainer).isRequired,
   children: PropTypes.node.isRequired,
 };
-
-export default withUnstatedContainers(NotAvailableForGuest, [AppContainer]);
+const NotAvailableForGuestWrap = withUnstatedContainers(NotAvailableForGuest, [AppContainer]);
+export default withTranslation()(NotAvailableForGuestWrap);

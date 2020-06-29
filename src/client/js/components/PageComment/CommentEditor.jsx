@@ -21,6 +21,7 @@ import SlackNotification from '../SlackNotification';
 
 import CommentPreview from './CommentPreview';
 import NotAvailableForGuest from '../NotAvailableForGuest';
+import { withTranslation } from 'react-i18next';
 
 /**
  *
@@ -143,8 +144,7 @@ class CommentEditor extends React.Component {
           currentCommentId,
           commentCreator,
         );
-      }
-      else {
+      } else {
         await this.props.commentContainer.postComment(
           this.state.comment,
           this.state.isMarkdown,
@@ -158,8 +158,7 @@ class CommentEditor extends React.Component {
       if (onCommentButtonClicked != null) {
         onCommentButtonClicked(replyTo || currentCommentId);
       }
-    }
-    catch (err) {
+    } catch (err) {
       const errorMessage = err.message || 'An unknown error occured when posting comment';
       this.setState({ errorMessage });
     }
@@ -200,7 +199,9 @@ class CommentEditor extends React.Component {
   getCommentHtml() {
     return (
       <CommentPreview
-        inputRef={(el) => { this.previewElement = el }}
+        inputRef={(el) => {
+          this.previewElement = el;
+        }}
         html={this.state.html}
       />
     );
@@ -214,33 +215,45 @@ class CommentEditor extends React.Component {
     const { growiRenderer } = this.props;
     const interceptorManager = this.props.appContainer.interceptorManager;
     interceptorManager.process('preRenderCommnetPreview', context)
-      .then(() => { return interceptorManager.process('prePreProcess', context) })
+      .then(() => {
+        return interceptorManager.process('prePreProcess', context);
+      })
       .then(() => {
         context.markdown = growiRenderer.preProcess(context.markdown);
       })
-      .then(() => { return interceptorManager.process('postPreProcess', context) })
+      .then(() => {
+        return interceptorManager.process('postPreProcess', context);
+      })
       .then(() => {
         const parsedHTML = growiRenderer.process(context.markdown);
         context.parsedHTML = parsedHTML;
       })
-      .then(() => { return interceptorManager.process('prePostProcess', context) })
+      .then(() => {
+        return interceptorManager.process('prePostProcess', context);
+      })
       .then(() => {
         context.parsedHTML = growiRenderer.postProcess(context.parsedHTML);
       })
-      .then(() => { return interceptorManager.process('postPostProcess', context) })
-      .then(() => { return interceptorManager.process('preRenderCommentPreviewHtml', context) })
+      .then(() => {
+        return interceptorManager.process('postPostProcess', context);
+      })
+      .then(() => {
+        return interceptorManager.process('preRenderCommentPreviewHtml', context);
+      })
       .then(() => {
         this.setState({ html: context.parsedHTML });
       })
       // process interceptors for post rendering
-      .then(() => { return interceptorManager.process('postRenderCommentPreviewHtml', context) });
+      .then(() => {
+        return interceptorManager.process('postRenderCommentPreviewHtml', context);
+      });
   }
 
   generateInnerHtml(html) {
     return { __html: html };
   }
 
-  renderBeforeReady() {
+  renderBeforeReady(t) {
     return (
       <div className="text-center">
         <NotAvailableForGuest>
@@ -249,7 +262,7 @@ class CommentEditor extends React.Component {
             className="btn btn-lg btn-link"
             onClick={() => this.setState({ isReadyToUse: true })}
           >
-            <i className="icon-bubble"></i> Add Comment
+            <i className="icon-bubble"></i> {t('Add Comment')}
           </button>
         </NotAvailableForGuest>
       </div>
@@ -257,7 +270,7 @@ class CommentEditor extends React.Component {
   }
 
   renderReady() {
-    const { appContainer, commentContainer } = this.props;
+    const { appContainer, commentContainer ,t} = this.props;
     const { activeTab } = this.state;
 
     const commentPreview = this.state.isMarkdown ? this.getCommentHtml() : null;
@@ -265,8 +278,9 @@ class CommentEditor extends React.Component {
 
     const errorMessage = <span className="text-danger text-right mr-2">{this.state.errorMessage}</span>;
     const cancelButton = (
-      <Button outline color="danger" size="xs" className="btn btn-outline-danger rounded-pill" onClick={this.cancelButtonClickedHandler}>
-        Cancel
+      <Button outline color="danger" size="xs" className="btn btn-outline-danger rounded-pill"
+              onClick={this.cancelButtonClickedHandler}>
+        {t("Cancel")}
       </Button>
     );
     const submitButton = (
@@ -276,7 +290,7 @@ class CommentEditor extends React.Component {
         className="btn btn-outline-primary rounded-pill"
         onClick={this.commentButtonClickedHandler}
       >
-        Comment
+        {t("comment.Comment")}
       </Button>
     );
 
@@ -286,21 +300,23 @@ class CommentEditor extends React.Component {
           <Nav tabs>
             <NavItem>
               <NavLink type="button" className={activeTab === 1 ? 'active' : ''} onClick={() => this.handleSelect(1)}>
-                    Write
+                {t("comment.Write")}
               </NavLink>
             </NavItem>
-            { this.state.isMarkdown && (
-            <NavItem>
-              <NavLink type="button" className={activeTab === 2 ? 'active' : ''} onClick={() => this.handleSelect(2)}>
-                      Preview
-              </NavLink>
-            </NavItem>
-                ) }
+            {this.state.isMarkdown && (
+              <NavItem>
+                <NavLink type="button" className={activeTab === 2 ? 'active' : ''} onClick={() => this.handleSelect(2)}>
+                  {t("comment.Preview")}
+                </NavLink>
+              </NavItem>
+            )}
           </Nav>
           <TabContent activeTab={activeTab}>
             <TabPane tabId={1}>
               <Editor
-                ref={(c) => { this.editor = c }}
+                ref={(c) => {
+                  this.editor = c;
+                }}
                 value={this.state.comment}
                 isGfmMode={this.state.isMarkdown}
                 lineNumbers={false}
@@ -325,7 +341,7 @@ class CommentEditor extends React.Component {
           <div className="d-flex">
             <label className="mr-2">
               {activeTab === 1 && (
-              <span className="custom-control custom-checkbox">
+                <span className="custom-control custom-checkbox">
                 <input
                   type="checkbox"
                   className="custom-control-input"
@@ -342,12 +358,12 @@ class CommentEditor extends React.Component {
                   Markdown
                 </label>
               </span>
-                  ) }
+              )}
             </label>
-            <span className="flex-grow-1" />
-            <span className="d-none d-sm-inline">{ this.state.errorMessage && errorMessage }</span>
-            { this.state.hasSlackConfig
-              && (
+            <span className="flex-grow-1"/>
+            <span className="d-none d-sm-inline">{this.state.errorMessage && errorMessage}</span>
+            {this.state.hasSlackConfig
+            && (
               <div className="form-inline align-self-center mr-md-2">
                 <SlackNotification
                   isSlackEnabled={commentContainer.state.isSlackEnabled}
@@ -356,7 +372,7 @@ class CommentEditor extends React.Component {
                   onChannelChange={this.onSlackChannelsChange}
                 />
               </div>
-              )
+            )
             }
             <div className="d-none d-sm-block">
               <span className="mr-2">{cancelButton}</span><span>{submitButton}</span>
@@ -364,7 +380,7 @@ class CommentEditor extends React.Component {
           </div>
           <div className="d-block d-sm-none mt-2">
             <div className="d-flex justify-content-end">
-              { this.state.errorMessage && errorMessage }
+              {this.state.errorMessage && errorMessage}
               <span className="mr-2">{cancelButton}</span><span>{submitButton}</span>
             </div>
           </div>
@@ -374,18 +390,18 @@ class CommentEditor extends React.Component {
   }
 
   render() {
-    const { appContainer } = this.props;
+    const { appContainer, t } = this.props;
     const { isReadyToUse } = this.state;
 
     return (
       <div className="form page-comment-form">
         <div className="comment-form">
           <div className="comment-form-user">
-            <UserPicture user={appContainer.currentUser} noLink noTooltip />
+            <UserPicture user={appContainer.currentUser} noLink noTooltip/>
           </div>
           <div className="comment-form-main">
-            { !isReadyToUse
-              ? this.renderBeforeReady()
+            {!isReadyToUse
+              ? this.renderBeforeReady(t)
               : this.renderReady()
             }
           </div>
@@ -417,4 +433,4 @@ CommentEditor.propTypes = {
  */
 const CommentEditorWrapper = withUnstatedContainers(CommentEditor, [AppContainer, PageContainer, EditorContainer, CommentContainer]);
 
-export default CommentEditorWrapper;
+export default withTranslation()(CommentEditorWrapper);

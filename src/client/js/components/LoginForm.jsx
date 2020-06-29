@@ -50,7 +50,7 @@ class LoginForm extends React.Component {
               <i className="icon-user"></i>
             </span>
           </div>
-          <input type="text" className="form-control rounded-0" placeholder="Username or E-mail" name="loginForm[username]" />
+          <input type="text" className="form-control rounded-0" placeholder={this.props.t('login.Username or E-mail')} name="loginForm[username]" />
           {isLdapStrategySetup && (
             <div className="input-group-append">
               <small className="input-group-text text-success">
@@ -66,7 +66,7 @@ class LoginForm extends React.Component {
               <i className="icon-lock"></i>
             </span>
           </div>
-          <input type="password" className="form-control rounded-0" placeholder="Password" name="loginForm[password]" />
+          <input type="password" className="form-control rounded-0" placeholder={this.props.t('login.Password')} name="loginForm[password]" />
         </div>
 
         <div className="input-group my-4">
@@ -281,9 +281,9 @@ class LoginForm extends React.Component {
             </ReactCardFlip>
           </div>
         </div>
-        <a href="https://growi.org" className="link-growi-org pl-3">
-          <span className="growi">GROWI</span>.<span className="org">ORG</span>
-        </a>
+        {/*<a href="https://growi.org" className="link-growi-org pl-3">*/}
+        {/*  <span className="growi">GROWI</span>.<span className="org">ORG</span>*/}
+        {/*</a>*/}
       </div>
     );
   }

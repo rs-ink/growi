@@ -3,26 +3,26 @@
     <li class="nav-item">
       <a class="nav-link active" href="#user-bookmark-list" role="tab" data-toggle="tab">
         <i class="icon-star"></i>
-        <span class="d-none d-sm-inline">Bookmarks</span>
+        <span class="d-none d-sm-inline">{{t("Bookmarks")}}</span>
       </a>
     </li>
     <li class="nav-item">
       <a class="nav-link" href="#user-created-list" role="tab" data-toggle="tab">
         <i class="icon-clock"></i>
-        <span class="d-none d-sm-inline">Recently Created</span>
+        <span class="d-none d-sm-inline">{{t("Recently Created")}}</span>
       </a>
     </li>
     {% if user._id.toString() == pageUser._id.toString() %}
     <li class="nav-item">
       <a class="nav-link" href="#user-draft-list" role="tab" data-toggle="tab">
         <i class="icon-docs"></i>
-        <span class="d-none d-sm-inline">My Drafts</span>
+        <span class="d-none d-sm-inline">{{t("My Drafts")}}</span>
       </a>
     </li>
     <li class="nav-item">
       <a class="nav-link" href="/me" role="tab">
         <i class="icon-wrench"></i>
-        <span class="d-none d-sm-inline">Settings</span>
+        <span class="d-none d-sm-inline">{{t("Settings")}}</span>
       </a>
     </li>
     {% endif %}

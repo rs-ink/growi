@@ -38,6 +38,7 @@ module.exports = (crowi) => {
     const queryOptions = {
       offset,
       limit,
+      isExcludeUser:true,
       includeTrashed: false,
       isRegExpEscapedFromPath: true,
       sort: 'updatedAt',

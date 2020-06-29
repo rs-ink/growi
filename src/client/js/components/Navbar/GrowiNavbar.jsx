@@ -20,20 +20,20 @@ class GrowiNavbar extends React.Component {
     return (
       <>
         <li className="nav-item d-none d-md-block">
-          <PageCreateButton />
+          <PageCreateButton/>
         </li>
 
         {isReachable
-         && (
-         <li className="nav-item d-md-none">
-           <a type="button" className="nav-link px-4" data-target="#grw-search-top-collapse" data-toggle="collapse">
-             <i className="icon-magnifier mr-2"></i>
-           </a>
-         </li>
-         )}
+        && (
+          <li className="nav-item d-md-none">
+            <a type="button" className="nav-link px-4" data-target="#grw-search-top-collapse" data-toggle="collapse">
+              <i className="icon-magnifier mr-2"></i>
+            </a>
+          </li>
+        )}
 
         <li className="grw-personal-dropdown nav-item dropdown dropdown-toggle dropdown-toggle-no-caret">
-          <PersonalDropdown />
+          <PersonalDropdown/>
         </li>
       </>
     );
@@ -45,7 +45,7 @@ class GrowiNavbar extends React.Component {
 
     return (
       <li className="nav-item confidential text-light">
-        <i className="icon-info d-md-none" data-toggle="tooltip" title={crowi.confidential} />
+        <i className="icon-info d-md-none" data-toggle="tooltip" title={crowi.confidential}/>
         <span className="d-none d-md-inline">
           {crowi.confidential}
         </span>
@@ -54,7 +54,7 @@ class GrowiNavbar extends React.Component {
   }
 
   render() {
-    const { appContainer } = this.props;
+    const { appContainer, t } = this.props;
     const { crowi } = appContainer.config;
     const { currentUser } = appContainer;
 
@@ -64,7 +64,7 @@ class GrowiNavbar extends React.Component {
         {/* Brand Logo  */}
         <div className="navbar-brand mr-0">
           <a className="grw-logo d-block" href="/">
-            <GrowiLogo />
+            <GrowiLogo/>
           </a>
         </div>
 
@@ -78,7 +78,8 @@ class GrowiNavbar extends React.Component {
 
         {/* Navbar Right  */}
         <ul className="navbar-nav ml-auto">
-          {currentUser != null ? this.renderNavbarRight() : <li id="login-user" className="nav-item"><a className="nav-link" href="/login">Login</a></li>}
+          {currentUser != null ? this.renderNavbarRight() :
+            <li id="login-user" className="nav-item"><a className="nav-link" href="/login">{t('login.Login')}</a></li>}
         </ul>
 
         {crowi.confidential != null && this.renderConfidential()}
