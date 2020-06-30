@@ -11,6 +11,8 @@ const NavbarToggler = (props) => {
   const { navigationContainer } = props;
 
   const clickHandler = () => {
+    console.log("navigationContainer.toggleDrawer")
+
     navigationContainer.toggleDrawer();
   };
 

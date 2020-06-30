@@ -160,15 +160,16 @@
       display: none;
     }
   }
-
   &:not(.open) {
     div[data-testid='Navigation'] {
       left: -#{$grw-sidebar-nav-width + $grw-sidebar-content-min-width};
+      display: none;
     }
   }
   &.open {
     div[data-testid='Navigation'] {
       left: 0;
+
     }
   }
 }
