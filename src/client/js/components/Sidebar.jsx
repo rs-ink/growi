@@ -168,7 +168,7 @@ class Sidebar extends React.Component {
     console.log('isDrawerOpened:', isDrawerOpened);
     return (
       <>
-        <div className={`grw-sidebar ${this.isDrawerMode ? 'grw-sidebar-drawer' : ''} ${isDrawerOpened ? 'open' : ''}`}>
+        <div className={`grw-sidebar d-print-none ${this.isDrawerMode ? 'grw-sidebar-drawer' : ''} ${isDrawerOpened ? 'open' : ''}`}>
           <ThemeProvider
             theme={theme => ({
               ...theme,
