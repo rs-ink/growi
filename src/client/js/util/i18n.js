@@ -22,6 +22,7 @@ export const i18nFactory = (userLocaleId = 'zh_CN') => {
   i18n
     .use(langDetector)
     .use(initReactI18next) // if not using I18nextProvider
+
     .init({
       debug: (process.env.NODE_ENV !== 'production'),
       resources: locales,
@@ -31,7 +32,10 @@ export const i18nFactory = (userLocaleId = 'zh_CN') => {
       detection: {
         order: ['userSettingDetector', 'querystring', 'localStorage'],
       },
-
+      saveMissing: true,
+      parseMissingKeyHandler: function(res) {
+        return (process.env.NODE_ENV !== 'production') ? res : res.substring(res.lastIndexOf('.') + 1);
+      },
       interpolation: {
         escapeValue: false, // not needed for react!!
       },
@@ -45,6 +49,8 @@ export const i18nFactory = (userLocaleId = 'zh_CN') => {
         nsMode: 'default',
       },
     });
-
+  i18n.on('missingKey', function(lngs, namespace, key, res) {
+    console.log('missingKey::::', lngs, namespace, key, res);
+  });
   return i18n;
 };
