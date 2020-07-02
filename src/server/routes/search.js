@@ -112,8 +112,7 @@ module.exports = function(crowi, app) {
 
     try {
       paginateOpts = ApiPaginate.parseOptionsForElasticSearch(req.query);
-    }
-    catch (e) {
+    } catch (e) {
       res.json(ApiResponse.error(e));
     }
 
@@ -145,12 +144,16 @@ module.exports = function(crowi, app) {
         scoreMap[esPage._id] = esPage._score;
       }
 
-      const ids = esResult.data.map((page) => { return page._id });
+      const ids = esResult.data.map((page) => {
+        return page._id;
+      });
       const findResult = await Page.findListByPageIds(ids);
 
       // add tag data to result pages
       findResult.pages.map((page) => {
-        const data = esResult.data.find((data) => { return page.id === data._id });
+        const data = esResult.data.find((data) => {
+          return page.id === data._id;
+        });
         page._doc.tags = data._source.tag_names;
         return page;
       });
@@ -159,15 +162,16 @@ module.exports = function(crowi, app) {
       result.totalCount = findResult.totalCount;
       result.data = findResult.pages
         .map((page) => {
-          page.bookmarkCount = (page._source && page._source.bookmark_count) || 0;
+          let bookmarkCount = (page._source && page._source.bookmark_count) || 0;
+          page.bookmarkCount = bookmarkCount;
+          page.extended = { _score: scoreMap[page._id], bookmarkCount };
           return page;
         })
         .sort((page1, page2) => {
           // note: this do not consider NaN
           return scoreMap[page2._id] - scoreMap[page1._id];
         });
-    }
-    catch (err) {
+    } catch (err) {
       return res.json(ApiResponse.error(err));
     }
 
