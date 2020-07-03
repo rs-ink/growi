@@ -26,40 +26,6 @@ export default class MarkdownTable {
     this.toString = this.toString.bind(this);
   }
 
-  toString() {
-    return markdownTable(this.table, this.options);
-  }
-
-  /**
-   * returns cloned Markdowntable instance
-   * (This method clones only the table field.)
-   */
-  clone() {
-    const newTable = [];
-    for (let i = 0; i < this.table.length; i++) {
-      newTable.push([].concat(this.table[i]));
-    }
-    return new MarkdownTable(newTable, this.options);
-  }
-
-  /**
-   * normalize all cell data(trim & convert the newline character to space or pad '' if cell data is null)
-   */
-  normalizeCells() {
-    for (let i = 0; i < this.table.length; i++) {
-      for (let j = 0; j < this.table[i].length; j++) {
-        if (this.table[i][j] != null) {
-          this.table[i][j] = this.table[i][j].trim().replace(/\r?\n/g, ' ');
-        }
-        else {
-          this.table[i][j] = '';
-        }
-      }
-    }
-
-    return this;
-  }
-
   /**
    * return a MarkdownTable instance made from a string of HTML table tag
    *
@@ -111,6 +77,7 @@ export default class MarkdownTable {
    * @param {string} str markdown string
    */
   static fromMarkdownString(str) {
+    console.log('fromMarkdownString::', str);
     const arrMDTableLines = str.split(/(\r\n|\r|\n)/);
     const contents = [];
     let aligns = [];
@@ -128,11 +95,12 @@ export default class MarkdownTable {
         lineText = line.replace(/^\||\|$/g, ''); // strip off pipe charactor which is placed head of line and last of line.
         lineText = lineText.replace(/\s*/g, '');
         aligns = lineText.split(/\|/).map((col) => {
-          const rule = alignRuleRE.find((rule) => { return col.match(rule.regex) });
+          const rule = alignRuleRE.find((rule) => {
+            return col.match(rule.regex);
+          });
           return (rule != null) ? rule.align : '';
         });
-      }
-      else if (linePartOfTableRE.test(line)) {
+      } else if (linePartOfTableRE.test(line)) {
         // parse line whether header or body
         let lineText = '';
         lineText = line.replace(/\s*\|\s*/g, '|');
@@ -142,6 +110,39 @@ export default class MarkdownTable {
       }
     }
     return (new MarkdownTable(contents, { align: aligns }));
+  }
+
+  toString() {
+    return markdownTable(this.table, this.options);
+  }
+
+  /**
+   * returns cloned Markdowntable instance
+   * (This method clones only the table field.)
+   */
+  clone() {
+    const newTable = [];
+    for (let i = 0; i < this.table.length; i++) {
+      newTable.push([].concat(this.table[i]));
+    }
+    return new MarkdownTable(newTable, this.options);
+  }
+
+  /**
+   * normalize all cell data(trim & convert the newline character to space or pad '' if cell data is null)
+   */
+  normalizeCells() {
+    for (let i = 0; i < this.table.length; i++) {
+      for (let j = 0; j < this.table[i].length; j++) {
+        if (this.table[i][j] != null) {
+          this.table[i][j] = this.table[i][j].trim().replace(/\r?\n/g, ' ');
+        } else {
+          this.table[i][j] = '';
+        }
+      }
+    }
+
+    return this;
   }
 
 }

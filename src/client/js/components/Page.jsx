@@ -46,6 +46,7 @@ class Page extends React.Component {
    * @param endLineNumber
    */
   launchHandsontableModal(beginLineNumber, endLineNumber) {
+    console.log("================================launchHandsontableModal")
     const markdown = this.props.pageContainer.state.markdown;
     const tableLines = markdown.split(/\r\n|\r|\n/).slice(beginLineNumber - 1, endLineNumber).join('\n');
     this.setState({ currentTargetTableArea: { beginLineNumber, endLineNumber } });

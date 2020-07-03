@@ -13,6 +13,7 @@ import { debounce } from 'throttle-debounce';
 
 import MarkdownTableDataImportForm from './MarkdownTableDataImportForm';
 import MarkdownTable from '../../models/MarkdownTable';
+import { withTranslation } from 'react-i18next';
 
 const DEFAULT_HOT_HEIGHT = 300;
 const MARKDOWNTABLE_TO_HANDSONTABLE_ALIGNMENT_SYMBOL_MAPPING = {
@@ -22,7 +23,7 @@ const MARKDOWNTABLE_TO_HANDSONTABLE_ALIGNMENT_SYMBOL_MAPPING = {
   '': '',
 };
 
-export default class HandsontableModal extends React.PureComponent {
+class HandsontableModal extends React.PureComponent {
 
   constructor(props) {
     super(props);
@@ -78,6 +79,32 @@ export default class HandsontableModal extends React.PureComponent {
     });
   }
 
+  static getDefaultMarkdownTable() {
+    return new MarkdownTable(
+      [
+        ['col1', 'col2', 'col3'],
+        ['', '', ''],
+        ['', '', ''],
+      ],
+      {
+        align: ['', '', ''],
+      },
+    );
+  }
+
+  static getDefaultHandsontableSetting() {
+    return {
+      rowHeaders: true,
+      colHeaders: true,
+      manualRowMove: true,
+      manualRowResize: true,
+      manualColumnMove: true,
+      manualColumnResize: true,
+      selectionMode: 'multiple',
+      outsideClickDeselects: false,
+    };
+  }
+
   init(markdownTable) {
     const initMarkdownTable = markdownTable || HandsontableModal.getDefaultMarkdownTable();
     this.setState(
@@ -109,15 +136,21 @@ export default class HandsontableModal extends React.PureComponent {
               {
                 name: 'Left',
                 key: 'align_columns:1',
-                callback: (key, selection) => { this.align('l', selection[0].start.col, selection[0].end.col) },
+                callback: (key, selection) => {
+                  this.align('l', selection[0].start.col, selection[0].end.col);
+                },
               }, {
                 name: 'Center',
                 key: 'align_columns:2',
-                callback: (key, selection) => { this.align('c', selection[0].start.col, selection[0].end.col) },
+                callback: (key, selection) => {
+                  this.align('c', selection[0].start.col, selection[0].end.col);
+                },
               }, {
                 name: 'Right',
                 key: 'align_columns:3',
-                callback: (key, selection) => { this.align('r', selection[0].start.col, selection[0].end.col) },
+                callback: (key, selection) => {
+                  this.align('r', selection[0].start.col, selection[0].end.col);
+                },
               },
             ],
           },
@@ -288,8 +321,7 @@ export default class HandsontableModal extends React.PureComponent {
     let insertPosition = 0;
     if (target <= columns[0]) {
       insertPosition = target;
-    }
-    else if (columns[columns.length - 1] < target) {
+    } else if (columns[columns.length - 1] < target) {
       insertPosition = target - columns.length;
     }
     align.splice(...[insertPosition, 0].concat(removed));
@@ -348,8 +380,7 @@ export default class HandsontableModal extends React.PureComponent {
     if (selectedRange[0].from.col < selectedRange[0].to.col) {
       startCol = selectedRange[0].from.col;
       endCol = selectedRange[0].to.col;
-    }
-    else {
+    } else {
       startCol = selectedRange[0].to.col;
       endCol = selectedRange[0].from.col;
     }
@@ -400,7 +431,8 @@ export default class HandsontableModal extends React.PureComponent {
   renderExpandOrContractButton() {
     const iconClassName = this.state.isWindowExpanded ? 'icon-size-actual' : 'icon-size-fullscreen';
     return (
-      <button type="button" className="close" onClick={this.state.isWindowExpanded ? this.contractWindow : this.expandWindow}>
+      <button type="button" className="close"
+              onClick={this.state.isWindowExpanded ? this.contractWindow : this.expandWindow}>
         <i className={iconClassName} style={{ fontSize: '0.8em' }} aria-hidden="true"></i>
       </button>
     );
@@ -415,6 +447,7 @@ export default class HandsontableModal extends React.PureComponent {
   }
 
   render() {
+    const { t } = this.props;
     const dialogClassNames = ['handsontable-modal'];
     if (this.state.isWindowExpanded) {
       dialogClassNames.push('handsontable-modal-expanded');
@@ -434,7 +467,7 @@ export default class HandsontableModal extends React.PureComponent {
     return (
       <Modal isOpen={this.state.show} toggle={this.cancel} size="lg" className={dialogClassName}>
         <ModalHeader tag="h4" toggle={this.cancel} close={buttons} className="bg-primary text-light">
-          Edit Table
+          {t('table.Edit Table')}
         </ModalHeader>
         <ModalBody className="p-0 d-flex flex-column">
           <div className="grw-hot-modal-navbar px-4 py-3 border-bottom">
@@ -446,22 +479,33 @@ export default class HandsontableModal extends React.PureComponent {
               aria-expanded={this.state.isDataImportAreaExpanded}
               onClick={this.toggleDataImportArea}
             >
-              <span className="mr-3">Data Import</span><i className={this.state.isDataImportAreaExpanded ? 'fa fa-angle-up' : 'fa fa-angle-down'}></i>
+              <span className="mr-3">{t('table.Data Import')}</span><i
+              className={this.state.isDataImportAreaExpanded ? 'fa fa-angle-up' : 'fa fa-angle-down'}></i>
             </button>
             <div role="group" className="btn-group">
-              <button type="button" className="btn btn-secondary" onClick={() => { this.alignButtonHandler('l') }}><i className="ti-align-left"></i></button>
-              <button type="button" className="btn btn-secondary" onClick={() => { this.alignButtonHandler('c') }}><i className="ti-align-center"></i></button>
-              <button type="button" className="btn btn-secondary" onClick={() => { this.alignButtonHandler('r') }}><i className="ti-align-right"></i></button>
+              <button type="button" className="btn btn-secondary" onClick={() => {
+                this.alignButtonHandler('l');
+              }}><i className="ti-align-left"></i></button>
+              <button type="button" className="btn btn-secondary" onClick={() => {
+                this.alignButtonHandler('c');
+              }}><i className="ti-align-center"></i></button>
+              <button type="button" className="btn btn-secondary" onClick={() => {
+                this.alignButtonHandler('r');
+              }}><i className="ti-align-right"></i></button>
             </div>
             <Collapse isOpen={this.state.isDataImportAreaExpanded}>
               <div className="mt-4">
-                <MarkdownTableDataImportForm onCancel={this.toggleDataImportArea} onImport={this.importData} />
+                <MarkdownTableDataImportForm onCancel={this.toggleDataImportArea} onImport={this.importData}/>
               </div>
             </Collapse>
           </div>
-          <div ref={(c) => { this.hotTableContainer = c }} className="m-4 hot-table-container">
+          <div ref={(c) => {
+            this.hotTableContainer = c;
+          }} className="m-4 hot-table-container">
             <HotTable
-              ref={(c) => { this.hotTable = c }}
+              ref={(c) => {
+                this.hotTable = c;
+              }}
               data={this.state.markdownTable.table}
               settings={this.handsontableSettings}
               height={this.state.handsontableHeight}
@@ -475,40 +519,14 @@ export default class HandsontableModal extends React.PureComponent {
           </div>
         </ModalBody>
         <ModalFooter className="grw-modal-footer">
-          <button type="button" className="btn btn-danger" onClick={this.reset}>Reset</button>
+          <button type="button" className="btn btn-danger" onClick={this.reset}>{t('table.Reset')}</button>
           <div className="ml-auto">
-            <button type="button" className="mr-2 btn btn-secondary" onClick={this.cancel}>Cancel</button>
-            <button type="button" className="btn btn-primary" onClick={this.save}>Done</button>
+            <button type="button" className="mr-2 btn btn-secondary" onClick={this.cancel}>{t('table.Cancel')}</button>
+            <button type="button" className="btn btn-primary" onClick={this.save}>{t('table.Done')}</button>
           </div>
         </ModalFooter>
       </Modal>
     );
-  }
-
-  static getDefaultMarkdownTable() {
-    return new MarkdownTable(
-      [
-        ['col1', 'col2', 'col3'],
-        ['', '', ''],
-        ['', '', ''],
-      ],
-      {
-        align: ['', '', ''],
-      },
-    );
-  }
-
-  static getDefaultHandsontableSetting() {
-    return {
-      rowHeaders: true,
-      colHeaders: true,
-      manualRowMove: true,
-      manualRowResize: true,
-      manualColumnMove: true,
-      manualColumnResize: true,
-      selectionMode: 'multiple',
-      outsideClickDeselects: false,
-    };
   }
 
 }
@@ -516,3 +534,4 @@ export default class HandsontableModal extends React.PureComponent {
 HandsontableModal.propTypes = {
   onSave: PropTypes.func,
 };
+export default withTranslation('markdown', { withRef: true })(HandsontableModal);
