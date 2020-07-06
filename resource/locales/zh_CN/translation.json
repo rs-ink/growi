@@ -133,7 +133,7 @@
 	"Edit tags for this page": "编辑标签",
 	"You have no tag, You can set tags on pages": "你没有标签，可以在页面上设置标签",
 	"Show latest": "显示最新",
-	"Load latest": "家在最新",
+	"Load latest": "加载最新",
 	"List Drafts": "草稿",
 	"Deleted Pages": "已删除页",
 	"Sign out": "退出",
@@ -627,7 +627,7 @@
 		"delete": "删除"
 	},
 	"personal_dropdown": {
-		"home": "家",
+		"home": "我的",
 		"settings": "设置",
 		"color_mode": "颜色模式",
 		"sidebar_mode": "边栏模式",
