@@ -28,7 +28,7 @@ export default class PageContainer extends Container {
 
     this.appContainer = appContainer;
     this.appContainer.registerContainer(this);
-    this.t = this.appContainer.i18n.t;
+
     this.state = {};
 
     const mainContent = document.querySelector('#content-main');
@@ -56,14 +56,10 @@ export default class PageContainer extends Container {
       createdAt: mainContent.getAttribute('data-page-created-at'),
       creator: JSON.parse(mainContent.getAttribute('data-page-creator')),
       updatedAt: mainContent.getAttribute('data-page-updated-at'),
-      isDeleted: JSON.parse(mainContent.getAttribute('data-page-is-deleted')),
-      isDeletable: JSON.parse(mainContent.getAttribute('data-page-is-deletable')),
-      isAbleToDeleteCompletely: JSON.parse(mainContent.getAttribute('data-page-is-able-to-delete-completely')),
-      tags: [],
       isDeleted:  JSON.parse(mainContent.getAttribute('data-page-is-deleted')),
       isDeletable:  JSON.parse(mainContent.getAttribute('data-page-is-deletable')),
       isAbleToDeleteCompletely:  JSON.parse(mainContent.getAttribute('data-page-is-able-to-delete-completely')),
-      tags: null,
+      tags: [],
       hasChildren: JSON.parse(mainContent.getAttribute('data-page-has-children')),
       templateTagData: mainContent.getAttribute('data-template-tags') || null,
 
@@ -92,20 +88,17 @@ export default class PageContainer extends Container {
 
     const unlinkPageButton = document.getElementById('unlink-page-button');
     if (unlinkPageButton != null) {
-      unlinkPageButton.addEventListener('click', async () => {
+      unlinkPageButton.addEventListener('click', async() => {
         try {
           const res = await this.appContainer.apiPost('/pages.unlink', { path });
           window.location.href = encodeURI(`${res.path}?unlinked=true`);
-        } catch (err) {
+        }
+        catch (err) {
           toastError(err);
         }
       });
     }
 
-  }
-
-  get navigationContainer() {
-    return this.appContainer.getContainer('NavigationContainer');
   }
 
   /**
@@ -165,22 +158,23 @@ export default class PageContainer extends Container {
   }
 
   async checkAndUpdateImageUrlCached(users) {
-    const noImageCacheUsers = users.filter((user) => {
-      return user.imageUrlCached == null;
-    });
+    const noImageCacheUsers = users.filter((user) => { return user.imageUrlCached == null });
     if (noImageCacheUsers.length === 0) {
       return;
     }
 
-    const noImageCacheUserIds = noImageCacheUsers.map((user) => {
-      return user.id;
-    });
+    const noImageCacheUserIds = noImageCacheUsers.map((user) => { return user.id });
     try {
       await this.appContainer.apiv3Put('/users/update.imageUrlCache', { userIds: noImageCacheUserIds });
-    } catch (err) {
+    }
+    catch (err) {
       // Error alert doesn't apear, because user don't need to notice this error.
       logger.error(err);
     }
+  }
+
+  get navigationContainer() {
+    return this.appContainer.getContainer('NavigationContainer');
   }
 
   setLatestRemotePageData(page, user) {
@@ -263,7 +257,8 @@ export default class PageContainer extends Container {
     let res;
     if (pageId == null) {
       res = await this.createPage(path, markdown, options);
-    } else {
+    }
+    else {
       res = await this.updatePage(pageId, revisionId, markdown, options);
     }
 
@@ -295,7 +290,8 @@ export default class PageContainer extends Container {
       // set option to sync
       options.isSyncRevisionToHackmd = true;
       revisionId = this.state.revisionIdHackmdSynced;
-    } else {
+    }
+    else {
       const pageEditor = this.appContainer.getComponentInstance('PageEditor');
       markdown = pageEditor.getMarkdown();
     }
@@ -303,7 +299,8 @@ export default class PageContainer extends Container {
     let res;
     if (pageId == null) {
       res = await this.createPage(path, markdown, options);
-    } else {
+    }
+    else {
       res = await this.updatePage(pageId, revisionId, markdown, options);
     }
 
@@ -397,7 +394,6 @@ export default class PageContainer extends Container {
   }
 
   showSuccessToastr() {
-    console.log(this);
     toastr.success(undefined, 'Saved successfully', {
       closeButton: true,
       progressBar: true,
