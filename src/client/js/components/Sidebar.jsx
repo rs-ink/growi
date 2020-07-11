@@ -12,8 +12,6 @@ import { withUnstatedContainers } from './UnstatedUtils';
 import AppContainer from '../services/AppContainer';
 import NavigationContainer from '../services/NavigationContainer';
 
-import DrawerToggler from './Navbar/DrawerToggler';
-
 import SidebarNav from './Sidebar/SidebarNav';
 import SidebarContents from './Sidebar/SidebarContents';
 import StickyStretchableScroller from './StickyStretchableScroller';
@@ -28,21 +26,6 @@ class Sidebar extends React.Component {
     navigationUIController: PropTypes.any.isRequired,
     isDrawerModeOnInit: PropTypes.bool,
   };
-
-  /**
-   * return whether drawer mode or not
-   */
-  get isDrawerMode() {
-    let isDrawerMode = this.props.navigationContainer.state.isDrawerMode;
-    if (isDrawerMode == null) {
-      isDrawerMode = this.props.isDrawerModeOnInit;
-    }
-    return isDrawerMode;
-  }
-
-  get sidebarElem() {
-    return document.querySelector('.grw-sidebar');
-  }
 
   componentWillMount() {
     this.hackUIController();
@@ -62,10 +45,21 @@ class Sidebar extends React.Component {
 
     // see: @atlaskit/navigation-next/dist/esm/ui-controller/UIController.js
     const orgStoreState = navigationUIController.storeState;
-    navigationUIController.storeState = async (state) => {
+    navigationUIController.storeState = async(state) => {
       await navigationUIController.setState(state);
       orgStoreState(state);
     };
+  }
+
+  /**
+   * return whether drawer mode or not
+   */
+  get isDrawerMode() {
+    let isDrawerMode = this.props.navigationContainer.state.isDrawerMode;
+    if (isDrawerMode == null) {
+      isDrawerMode = this.props.isDrawerModeOnInit;
+    }
+    return isDrawerMode;
   }
 
   toggleDrawerMode(bool) {
@@ -108,6 +102,10 @@ class Sidebar extends React.Component {
     }
   }
 
+  get sidebarElem() {
+    return document.querySelector('.grw-sidebar');
+  }
+
   addCssClassTemporary(className) {
     // clear
     this.sidebarElem.classList.add(className);
@@ -120,9 +118,6 @@ class Sidebar extends React.Component {
 
   backdropClickedHandler = () => {
     const { navigationContainer } = this.props;
-    console.log("navigationContainer.state:",navigationContainer.state);
-    navigationContainer.setState({ isDrawerOpened: false });
-  };
     navigationContainer.toggleDrawer();
   }
 
@@ -138,7 +133,7 @@ class Sidebar extends React.Component {
     else {
       navigationUIController.expand();
     }
-  };
+  }
 
   calcViewHeight() {
     const containerElem = document.querySelector('#grw-sidebar-content-container');
@@ -146,12 +141,11 @@ class Sidebar extends React.Component {
   }
 
   renderGlobalNavigation = () => (
-    <SidebarNav onItemSelected={this.itemSelectedHandler}/>
+    <SidebarNav onItemSelected={this.itemSelectedHandler} />
   );
 
   renderSidebarContents = () => {
-    // const scrollTargetSelector = 'div[data-testid="ContextualNavigation"] div[role="group"]';
-    const scrollTargetSelector = '#grw-sidebar-content-container';
+    const scrollTargetSelector = 'div[data-testid="ContextualNavigation"] div[role="group"]';
 
     return (
       <>
@@ -162,17 +156,15 @@ class Sidebar extends React.Component {
           calcViewHeightFunc={this.calcViewHeight}
         />
         <div id="grw-sidebar-content-container" className="grw-sidebar-content-container">
-          <SidebarContents/>
+          <SidebarContents />
         </div>
-
-        <DrawerToggler iconClass="icon-arrow-left" />
       </>
     );
   };
 
   render() {
     const { isDrawerOpened } = this.props.navigationContainer.state;
-    console.log('isDrawerOpened:', isDrawerOpened);
+
     return (
       <>
         <div className={`grw-sidebar d-print-none ${this.isDrawerMode ? 'grw-sidebar-drawer' : ''} ${isDrawerOpened ? 'open' : ''}`}>
@@ -197,9 +189,9 @@ class Sidebar extends React.Component {
           </ThemeProvider>
         </div>
 
-        {isDrawerOpened && (
+        { isDrawerOpened && (
           <div className="grw-sidebar-backdrop modal-backdrop show" onClick={this.backdropClickedHandler}></div>
-        )}
+        ) }
       </>
     );
   }
@@ -207,7 +199,7 @@ class Sidebar extends React.Component {
 }
 
 
-const SidebarWithNavigationUIController = withNavigationUIController(Sidebar,[AppContainer, NavigationContainer]);
+const SidebarWithNavigationUIController = withNavigationUIController(Sidebar);
 
 /**
  * Wrapper component for using unstated
@@ -228,7 +220,7 @@ const SidebarWithNavigation = (props) => {
 
   return (
     <NavigationProvider initialUIController={initUICForDrawerMode}>
-      <SidebarWithNavigationUIController {...props} isDrawerModeOnInit={isDrawerModeOnInit}/>
+      <SidebarWithNavigationUIController {...props} isDrawerModeOnInit={isDrawerModeOnInit} />
     </NavigationProvider>
   );
 };
