@@ -1,7 +1,9 @@
 /* eslint-disable import/prefer-default-export */
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { Provider } from 'unstated';
 import { BasicInterceptor } from 'growi-commons';
+
 import Drawio from '../../components/Drawio';
 
 /**
@@ -16,22 +18,6 @@ export class DrawioInterceptor extends BasicInterceptor {
 
     this.previousPreviewContext = null;
     this.appContainer = appContainer;
-
-    // define callback function invoked by viewer.min.js of draw.io
-    // refs: https://github.com/jgraph/drawio/blob/v12.9.1/etc/build/build.xml#L219-L232
-    window.onDrawioViewerLoad = function() {
-      const DrawioViewer = window.GraphViewer;
-
-      if (DrawioViewer != null) {
-        // disable useResizeSensor and checkVisibleState
-        //   for preventing resize event by viewer.min.js
-        DrawioViewer.useResizeSensor = false;
-        DrawioViewer.prototype.checkVisibleState = false;
-
-        // initialize
-        DrawioViewer.processElements();
-      }
-    };
   }
 
   /**
@@ -132,12 +118,13 @@ export class DrawioInterceptor extends BasicInterceptor {
   renderReactDOM(drawioMapEntry, elem, isPreview) {
     ReactDOM.render(
       // eslint-disable-next-line react/jsx-filename-extension
-      <Drawio
-        appContainer={this.appContainer}
-        drawioContent={drawioMapEntry.contentHtml}
-        isPreview={isPreview}
-        rangeLineNumberOfMarkdown={drawioMapEntry.rangeLineNumberOfMarkdown}
-      />,
+      <Provider inject={[this.appContainer]}>
+        <Drawio
+          drawioContent={drawioMapEntry.contentHtml}
+          isPreview={isPreview}
+          rangeLineNumberOfMarkdown={drawioMapEntry.rangeLineNumberOfMarkdown}
+        />
+      </Provider>,
       elem,
     );
   }

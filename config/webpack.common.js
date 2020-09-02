@@ -8,7 +8,7 @@ const webpack = require('webpack');
  */
 const WebpackAssetsManifest = require('webpack-assets-manifest');
 const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
-const HardSourceWebpackPlugin = require('hard-source-webpack-plugin');
+
 const helpers = require('../src/lib/util/helpers');
 
 /*
@@ -20,6 +20,7 @@ module.exports = (options) => {
   return {
     mode: options.mode,
     entry: Object.assign({
+      'js/boot':                      './src/client/js/boot',
       'js/app':                       './src/client/js/app',
       'js/admin':                     './src/client/js/admin',
       'js/nologin':                   './src/client/js/nologin',
@@ -68,7 +69,6 @@ module.exports = (options) => {
         '@client': helpers.root('src/client'),
         '@tmp': helpers.root('tmp'),
         '@alias/logger': helpers.root('src/lib/service/logger'),
-        '@alias/locales': helpers.root('resource/locales'),
         // replace bunyan
         bunyan: 'browser-bunyan',
       },
@@ -96,10 +96,6 @@ module.exports = (options) => {
             basenameAsNamespace: true,
           },
         },
-        { // see https://github.com/abpetkov/switchery/issues/120
-          test: /switchery\.js$/,
-          loader: 'imports-loader?module=>false,exports=>false,define=>false,this=>window',
-        },
         /*
          * File loader for supporting images, for example, in CSS files.
          */
@@ -126,14 +122,6 @@ module.exports = (options) => {
       // ignore
       new webpack.IgnorePlugin(/^\.\/lib\/deflate\.js/, /markdown-it-plantuml/),
       new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/),
-
-      new HardSourceWebpackPlugin(),
-      new HardSourceWebpackPlugin.ExcludeModulePlugin([
-        {
-          // see https://github.com/mzgoddard/hard-source-webpack-plugin/blob/master/README.md#excludemoduleplugin
-          test: /mini-css-extract-plugin[\\/]dist[\\/]loader/,
-        },
-      ]),
 
       new LodashModuleReplacementPlugin({
         flattening: true,
@@ -165,7 +153,10 @@ module.exports = (options) => {
           },
           commons: {
             test: /(src|resource)[\\/].*\.(js|jsx|json)$/,
-            chunks: 'initial',
+            chunks: (chunk) => {
+              // ignore patterns
+              return chunk.name != null && !chunk.name.match(/boot/);
+            },
             name: 'js/commons',
             minChunks: 2,
             minSize: 1,
@@ -175,7 +166,7 @@ module.exports = (options) => {
             test: /node_modules[\\/].*\.(js|jsx|json)$/,
             chunks: (chunk) => {
               // ignore patterns
-              return chunk.name != null && !chunk.name.match(/legacy-presentation|ie11-polyfill|hackmd-/);
+              return chunk.name != null && !chunk.name.match(/boot|legacy-presentation|ie11-polyfill|hackmd-/);
             },
             name: 'js/vendors',
             minSize: 1,

@@ -12,7 +12,6 @@ module.exports = function(crowi, req, locals) {
     passportService,
     appService,
     aclService,
-    fileUploadService,
     customizeService,
   } = crowi;
   debug('initializing swigFunctions');
@@ -69,7 +68,6 @@ module.exports = function(crowi, req, locals) {
    */
   locals.appService = appService;
   locals.aclService = aclService;
-  locals.fileUploadService = fileUploadService;
   locals.customizeService = customizeService;
   locals.passportService = passportService;
   locals.pathUtils = pathUtils;
@@ -111,11 +109,6 @@ module.exports = function(crowi, req, locals) {
 
   locals.getSamlMissingMandatoryConfigKeys = function() {
     return crowi.passportService.getSamlMissingMandatoryConfigKeys();
-  };
-
-  locals.isSearchServiceConfigured = function() {
-    const { searchService } = crowi;
-    return searchService.isConfigured;
   };
 
   locals.isHackmdSetup = function() {

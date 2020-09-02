@@ -6,7 +6,7 @@ const express = require('express');
 
 const router = express.Router();
 
-const { body } = require('express-validator/check');
+const { body } = require('express-validator');
 const ErrorV3 = require('../../models/vo/error-apiv3');
 const removeNullPropertyFromObject = require('../../../lib/util/removeNullPropertyFromObject');
 
@@ -65,6 +65,14 @@ const validator = {
   oidcAuth: [
     body('oidcProviderName').if(value => value != null).isString(),
     body('oidcIssuerHost').if(value => value != null).isString(),
+    body('oidcAuthorizationEndpoint').if(value => value != null).isString(),
+    body('oidcTokenEndpoint').if(value => value != null).isString(),
+    body('oidcRevocationEndpoint').if(value => value != null).isString(),
+    body('oidcIntrospectionEndpoint').if(value => value != null).isString(),
+    body('oidcUserInfoEndpoint').if(value => value != null).isString(),
+    body('oidcEndSessionEndpoint').if(value => value != null).isString(),
+    body('oidcRegistrationEndpoint').if(value => value != null).isString(),
+    body('oidcJWKSUri').if(value => value != null).isString(),
     body('oidcClientId').if(value => value != null).isString(),
     body('oidcClientSecret').if(value => value != null).isString(),
     body('oidcAttrMapId').if(value => value != null).isString(),
@@ -219,6 +227,30 @@ const validator = {
  *          oidcIssuerHost:
  *            type: string
  *            description: issuer host for oidc
+ *          oidcAuthorizationEndpoint:
+ *            type: string
+ *            description: authorization endpoint for oidc
+ *          oidcTokenEndpoint:
+ *            type: string
+ *            description: token endpoint for oidc
+ *          oidcRevocationEndpoint:
+ *            type: string
+ *            description: revocation endpoint for oidc
+ *          oidcIntrospectionEndpoint:
+ *            type: string
+ *            description: introspection endpoint for oidc
+ *          oidcUserInfoEndpoint:
+ *            type: string
+ *            description: userinfo endpoint for oidc
+ *          oidcEndSessionEndpoint:
+ *            type: string
+ *            description: end session endpoint for oidc
+ *          oidcRegistrationEndpoint:
+ *            type: string
+ *            description: registration endpoint for oidc
+ *          oidcJWKSUri:
+ *            type: string
+ *            description: JSON Web Key Set URI for oidc
  *          oidcClientId:
  *            type: string
  *            description: client id for oidc
@@ -287,11 +319,20 @@ const validator = {
  *            description: local account automatically linked the email matched
  */
 module.exports = (crowi) => {
-  const loginRequiredStrictly = require('../../middleware/login-required')(crowi);
-  const adminRequired = require('../../middleware/admin-required')(crowi);
-  const csrf = require('../../middleware/csrf')(crowi);
+  const loginRequiredStrictly = require('../../middlewares/login-required')(crowi);
+  const adminRequired = require('../../middlewares/admin-required')(crowi);
+  const csrf = require('../../middlewares/csrf')(crowi);
+  const apiV3FormValidator = require('../../middlewares/apiv3-form-validator')(crowi);
 
-  const { ApiV3FormValidator } = crowi.middlewares;
+  async function updateAndReloadStrategySettings(authId, params) {
+    const { configManager, passportService } = crowi;
+
+    // update config without publishing S2sMessage
+    await configManager.updateConfigsInTheSameNamespace('crowi', params, true);
+
+    await passportService.setupStrategyById(authId);
+    passportService.publishUpdatedMessage(authId);
+  }
 
   /**
    * @swagger
@@ -377,6 +418,14 @@ module.exports = (crowi) => {
       oidcAuth: {
         oidcProviderName: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:providerName'),
         oidcIssuerHost: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:issuerHost'),
+        oidcAuthorizationEndpoint: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:authorizationEndpoint'),
+        oidcTokenEndpoint: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:tokenEndpoint'),
+        oidcRevocationEndpoint: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:revocationEndpoint'),
+        oidcIntrospectionEndpoint: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:introspectionEndpoint'),
+        oidcUserInfoEndpoint: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:userInfoEndpoint'),
+        oidcEndSessionEndpoint: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:endSessionEndpoint'),
+        oidcRegistrationEndpoint: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:registrationEndpoint'),
+        oidcJWKSUri: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:jwksUri'),
         oidcClientId: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:clientId'),
         oidcClientSecret: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:clientSecret'),
         oidcAttrMapId: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:attrMapId'),
@@ -435,7 +484,7 @@ module.exports = (crowi) => {
    *                  type: object
    *                  description: updated param
    */
-  router.put('/authentication/enabled', loginRequiredStrictly, adminRequired, csrf, validator.authenticationSetting, ApiV3FormValidator, async(req, res) => {
+  router.put('/authentication/enabled', loginRequiredStrictly, adminRequired, csrf, validator.authenticationSetting, apiV3FormValidator, async(req, res) => {
     const { isEnabled, authId } = req.body;
 
     let setupStrategies = await crowi.passportService.getSetupStrategies();
@@ -450,9 +499,7 @@ module.exports = (crowi) => {
     const enableParams = { [`security:passport-${authId}:isEnabled`]: isEnabled };
 
     try {
-      await crowi.configManager.updateConfigsInTheSameNamespace('crowi', enableParams);
-
-      await crowi.passportService.setupStrategyById(authId);
+      await updateAndReloadStrategySettings(authId, enableParams);
 
       const responseParams = {
         [`security:passport-${authId}:isEnabled`]: await crowi.configManager.getConfig('crowi', `security:passport-${authId}:isEnabled`),
@@ -518,7 +565,7 @@ module.exports = (crowi) => {
    *                schema:
    *                  $ref: '#/components/schemas/GeneralSetting'
    */
-  router.put('/general-setting', loginRequiredStrictly, adminRequired, csrf, validator.generalSetting, ApiV3FormValidator, async(req, res) => {
+  router.put('/general-setting', loginRequiredStrictly, adminRequired, csrf, validator.generalSetting, apiV3FormValidator, async(req, res) => {
     const requestParams = {
       'security:restrictGuestMode': req.body.restrictGuestMode,
       'security:pageCompleteDeletionAuthority': req.body.pageCompleteDeletionAuthority,
@@ -547,6 +594,77 @@ module.exports = (crowi) => {
     }
   });
 
+
+  /**
+   * @swagger
+   *
+   *    /_api/v3/security-setting/all-share-links:
+   *      get:
+   *        tags: [ShareLinkSettings, apiv3]
+   *        description: Get All ShareLinks at Share Link Setting
+   *        responses:
+   *          200:
+   *            description: all share links
+   *            content:
+   *              application/json:
+   *                schema:
+   *                  properties:
+   *                    securityParams:
+   *                      type: object
+   *                      description: suceed to get all share links
+   */
+  router.get('/all-share-links/', loginRequiredStrictly, adminRequired, async(req, res) => {
+    const ShareLink = crowi.model('ShareLink');
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const linkQuery = {};
+    try {
+      const paginateResult = await ShareLink.paginate(
+        linkQuery,
+        {
+          page,
+          limit,
+          populate: {
+            path: 'relatedPage',
+            select: 'path',
+          },
+        },
+      );
+      return res.apiv3({ paginateResult });
+    }
+    catch (err) {
+      const msg = 'Error occured in get share link';
+      logger.error('Error', err);
+      return res.apiv3Err(new ErrorV3(msg, 'get-all-share-links-failed'));
+    }
+  });
+
+  /**
+   * @swagger
+   *
+   *    /_api/v3/security-setting/all-share-links:
+   *      delete:
+   *        tags: [ShareLinkSettings, apiv3]
+   *        description: Delete All ShareLinks at Share Link Setting
+   *        responses:
+   *          200:
+   *            description: succeed to delete all share links
+   */
+
+  router.delete('/all-share-links/', loginRequiredStrictly, adminRequired, async(req, res) => {
+    const ShareLink = crowi.model('ShareLink');
+    try {
+      const removedAct = await ShareLink.remove({});
+      const removeTotal = await removedAct.n;
+      return res.apiv3({ removeTotal });
+    }
+    catch (err) {
+      const msg = 'Error occured in delete all share links';
+      logger.error('Error', err);
+      return res.apiv3Err(new ErrorV3(msg, 'failed-to-delete-all-share-links'));
+    }
+  });
+
   /**
    * @swagger
    *
@@ -568,14 +686,14 @@ module.exports = (crowi) => {
    *                schema:
    *                  $ref: '#/components/schemas/LocalSetting'
    */
-  router.put('/local-setting', loginRequiredStrictly, adminRequired, csrf, validator.localSetting, ApiV3FormValidator, async(req, res) => {
+  router.put('/local-setting', loginRequiredStrictly, adminRequired, csrf, validator.localSetting, apiV3FormValidator, async(req, res) => {
     const requestParams = {
       'security:registrationMode': req.body.registrationMode,
       'security:registrationWhiteList': req.body.registrationWhiteList,
     };
     try {
-      await crowi.configManager.updateConfigsInTheSameNamespace('crowi', requestParams);
-      await crowi.passportService.setupStrategyById('local');
+      await updateAndReloadStrategySettings('local', requestParams);
+
       const localSettingParams = {
         registrationMode: await crowi.configManager.getConfig('crowi', 'security:registrationMode'),
         registrationWhiteList: await crowi.configManager.getConfig('crowi', 'security:registrationWhiteList'),
@@ -610,7 +728,7 @@ module.exports = (crowi) => {
    *                schema:
    *                  $ref: '#/components/schemas/LdapAuthSetting'
    */
-  router.put('/ldap', loginRequiredStrictly, adminRequired, csrf, validator.ldapAuth, ApiV3FormValidator, async(req, res) => {
+  router.put('/ldap', loginRequiredStrictly, adminRequired, csrf, validator.ldapAuth, apiV3FormValidator, async(req, res) => {
     const requestParams = {
       'security:passport-ldap:serverUrl': req.body.serverUrl,
       'security:passport-ldap:isUserBind': req.body.isUserBind,
@@ -627,8 +745,8 @@ module.exports = (crowi) => {
     };
 
     try {
-      await crowi.configManager.updateConfigsInTheSameNamespace('crowi', requestParams);
-      await crowi.passportService.setupStrategyById('ldap');
+      await updateAndReloadStrategySettings('ldap', requestParams);
+
       const securitySettingParams = {
         serverUrl: await crowi.configManager.getConfig('crowi', 'security:passport-ldap:serverUrl'),
         isUserBind: await crowi.configManager.getConfig('crowi', 'security:passport-ldap:isUserBind'),
@@ -673,7 +791,7 @@ module.exports = (crowi) => {
    *                schema:
    *                  $ref: '#/components/schemas/SamlAuthSetting'
    */
-  router.put('/saml', loginRequiredStrictly, adminRequired, csrf, validator.samlAuth, ApiV3FormValidator, async(req, res) => {
+  router.put('/saml', loginRequiredStrictly, adminRequired, csrf, validator.samlAuth, apiV3FormValidator, async(req, res) => {
 
     //  For the value of each mandatory items,
     //  check whether it from the environment variables is empty and form value to update it is empty
@@ -718,8 +836,8 @@ module.exports = (crowi) => {
     };
 
     try {
-      await crowi.configManager.updateConfigsInTheSameNamespace('crowi', requestParams);
-      await crowi.passportService.setupStrategyById('saml');
+      await updateAndReloadStrategySettings('saml', requestParams);
+
       const securitySettingParams = {
         missingMandatoryConfigKeys: await crowi.passportService.getSamlMissingMandatoryConfigKeys(),
         samlEntryPoint: await crowi.configManager.getConfigFromDB('crowi', 'security:passport-saml:entryPoint'),
@@ -764,10 +882,18 @@ module.exports = (crowi) => {
    *                schema:
    *                  $ref: '#/components/schemas/OidcAuthSetting'
    */
-  router.put('/oidc', loginRequiredStrictly, adminRequired, csrf, validator.oidcAuth, ApiV3FormValidator, async(req, res) => {
+  router.put('/oidc', loginRequiredStrictly, adminRequired, csrf, validator.oidcAuth, apiV3FormValidator, async(req, res) => {
     const requestParams = {
       'security:passport-oidc:providerName': req.body.oidcProviderName,
       'security:passport-oidc:issuerHost': req.body.oidcIssuerHost,
+      'security:passport-oidc:authorizationEndpoint': req.body.oidcAuthorizationEndpoint,
+      'security:passport-oidc:tokenEndpoint': req.body.oidcTokenEndpoint,
+      'security:passport-oidc:revocationEndpoint': req.body.oidcRevocationEndpoint,
+      'security:passport-oidc:introspectionEndpoint': req.body.oidcIntrospectionEndpoint,
+      'security:passport-oidc:userInfoEndpoint': req.body.oidcUserInfoEndpoint,
+      'security:passport-oidc:endSessionEndpoint': req.body.oidcEndSessionEndpoint,
+      'security:passport-oidc:registrationEndpoint': req.body.oidcRegistrationEndpoint,
+      'security:passport-oidc:jwksUri': req.body.oidcJWKSUri,
       'security:passport-oidc:clientId': req.body.oidcClientId,
       'security:passport-oidc:clientSecret': req.body.oidcClientSecret,
       'security:passport-oidc:attrMapId': req.body.oidcAttrMapId,
@@ -779,11 +905,19 @@ module.exports = (crowi) => {
     };
 
     try {
-      await crowi.configManager.updateConfigsInTheSameNamespace('crowi', requestParams);
-      await crowi.passportService.setupStrategyById('oidc');
+      await updateAndReloadStrategySettings('oidc', requestParams);
+
       const securitySettingParams = {
         oidcProviderName: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:providerName'),
         oidcIssuerHost: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:issuerHost'),
+        oidcAuthorizationEndpoint: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:authorizationEndpoint'),
+        oidcTokenEndpoint: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:tokenEndpoint'),
+        oidcRevocationEndpoint: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:revocationEndpoint'),
+        oidcIntrospectionEndpoint: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:introspectionEndpoint'),
+        oidcUserInfoEndpoint: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:userInfoEndpoint'),
+        oidcEndSessionEndpoint: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:endSessionEndpoint'),
+        oidcRegistrationEndpoint: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:registrationEndpoint'),
+        oidcJWKSUri: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:jwksUri'),
         oidcClientId: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:clientId'),
         oidcClientSecret: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:clientSecret'),
         oidcAttrMapId: await crowi.configManager.getConfig('crowi', 'security:passport-oidc:attrMapId'),
@@ -823,14 +957,14 @@ module.exports = (crowi) => {
    *                schema:
    *                  $ref: '#/components/schemas/BasicAuthSetting'
    */
-  router.put('/basic', loginRequiredStrictly, adminRequired, csrf, validator.basicAuth, ApiV3FormValidator, async(req, res) => {
+  router.put('/basic', loginRequiredStrictly, adminRequired, csrf, validator.basicAuth, apiV3FormValidator, async(req, res) => {
     const requestParams = {
       'security:passport-basic:isSameUsernameTreatedAsIdenticalUser': req.body.isSameUsernameTreatedAsIdenticalUser,
     };
 
     try {
-      await crowi.configManager.updateConfigsInTheSameNamespace('crowi', requestParams);
-      await crowi.passportService.setupStrategyById('basic');
+      await updateAndReloadStrategySettings('basic', requestParams);
+
       const securitySettingParams = {
         isSameUsernameTreatedAsIdenticalUser: await crowi.configManager.getConfig('crowi', 'security:passport-basic:isSameUsernameTreatedAsIdenticalUser'),
       };
@@ -864,7 +998,7 @@ module.exports = (crowi) => {
    *                schema:
    *                  $ref: '#/components/schemas/GoogleOAuthSetting'
    */
-  router.put('/google-oauth', loginRequiredStrictly, adminRequired, csrf, validator.googleOAuth, ApiV3FormValidator, async(req, res) => {
+  router.put('/google-oauth', loginRequiredStrictly, adminRequired, csrf, validator.googleOAuth, apiV3FormValidator, async(req, res) => {
     const requestParams = {
       'security:passport-google:clientId': req.body.googleClientId,
       'security:passport-google:clientSecret': req.body.googleClientSecret,
@@ -872,8 +1006,8 @@ module.exports = (crowi) => {
     };
 
     try {
-      await crowi.configManager.updateConfigsInTheSameNamespace('crowi', requestParams);
-      await crowi.passportService.setupStrategyById('google');
+      await updateAndReloadStrategySettings('google', requestParams);
+
       const securitySettingParams = {
         googleClientId: await crowi.configManager.getConfig('crowi', 'security:passport-google:clientId'),
         googleClientSecret: await crowi.configManager.getConfig('crowi', 'security:passport-google:clientSecret'),
@@ -909,7 +1043,7 @@ module.exports = (crowi) => {
    *                schema:
    *                  $ref: '#/components/schemas/GitHubOAuthSetting'
    */
-  router.put('/github-oauth', loginRequiredStrictly, adminRequired, csrf, validator.githubOAuth, ApiV3FormValidator, async(req, res) => {
+  router.put('/github-oauth', loginRequiredStrictly, adminRequired, csrf, validator.githubOAuth, apiV3FormValidator, async(req, res) => {
     const requestParams = {
       'security:passport-github:clientId': req.body.githubClientId,
       'security:passport-github:clientSecret': req.body.githubClientSecret,
@@ -917,8 +1051,8 @@ module.exports = (crowi) => {
     };
 
     try {
-      await crowi.configManager.updateConfigsInTheSameNamespace('crowi', requestParams);
-      await crowi.passportService.setupStrategyById('github');
+      await updateAndReloadStrategySettings('github', requestParams);
+
       const securitySettingParams = {
         githubClientId: await crowi.configManager.getConfig('crowi', 'security:passport-github:clientId'),
         githubClientSecret: await crowi.configManager.getConfig('crowi', 'security:passport-github:clientSecret'),
@@ -956,7 +1090,7 @@ module.exports = (crowi) => {
    *                schema:
    *                  $ref: '#/components/schemas/TwitterOAuthSetting'
    */
-  router.put('/twitter-oauth', loginRequiredStrictly, adminRequired, csrf, validator.twitterOAuth, ApiV3FormValidator, async(req, res) => {
+  router.put('/twitter-oauth', loginRequiredStrictly, adminRequired, csrf, validator.twitterOAuth, apiV3FormValidator, async(req, res) => {
 
     let requestParams = {
       'security:passport-twitter:consumerKey': req.body.twitterConsumerKey,
@@ -967,8 +1101,8 @@ module.exports = (crowi) => {
     requestParams = removeNullPropertyFromObject(requestParams);
 
     try {
-      await crowi.configManager.updateConfigsInTheSameNamespace('crowi', requestParams);
-      await crowi.passportService.setupStrategyById('twitter');
+      await updateAndReloadStrategySettings('twitter', requestParams);
+
       const securitySettingParams = {
         twitterConsumerId: await crowi.configManager.getConfig('crowi', 'security:passport-twitter:consumerKey'),
         twitterConsumerSecret: await crowi.configManager.getConfig('crowi', 'security:passport-twitter:consumerSecret'),

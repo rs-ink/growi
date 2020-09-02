@@ -4,8 +4,6 @@ module.exports = function(crowi, app) {
   const logger = require('@alias/logger')('growi:routes:admin');
 
   const models = crowi.models;
-  const User = models.User;
-  const ExternalAccount = models.ExternalAccount;
   const UserGroup = models.UserGroup;
   const UserGroupRelation = models.UserGroupRelation;
   const GlobalNotificationSetting = models.GlobalNotificationSetting;
@@ -21,12 +19,10 @@ module.exports = function(crowi, app) {
   const ApiResponse = require('../util/apiResponse');
   const importer = require('../util/importer')(crowi);
 
-  const searchEvent = crowi.event('search');
-
   const MAX_PAGE_LIST = 50;
   const actions = {};
 
-  const { check } = require('express-validator/check');
+  const { check } = require('express-validator');
 
   const api = {};
 
@@ -85,17 +81,6 @@ module.exports = function(crowi, app) {
 
     return pager;
   }
-
-  // setup websocket event for rebuild index
-  searchEvent.on('addPageProgress', (total, current, skip) => {
-    crowi.getIo().sockets.emit('admin:addPageProgress', { total, current, skip });
-  });
-  searchEvent.on('finishAddPage', (total, current, skip) => {
-    crowi.getIo().sockets.emit('admin:finishAddPage', { total, current, skip });
-  });
-  searchEvent.on('rebuildingFailed', (error) => {
-    crowi.getIo().sockets.emit('admin:rebuildingFailed', { error: error.message });
-  });
 
   actions.index = function(req, res) {
     return res.render('admin/index');
@@ -170,6 +155,7 @@ module.exports = function(crowi, app) {
   // app.get('/admin/notification/slackAuth'     , admin.notification.slackauth);
   actions.notification.slackAuth = function(req, res) {
     const code = req.query.code;
+    const { t } = req;
 
     if (!code || !slackNotificationService.hasSlackConfig()) {
       return res.redirect('/admin/notification');
@@ -182,17 +168,17 @@ module.exports = function(crowi, app) {
 
         try {
           await configManager.updateConfigsInTheSameNamespace('notification', { 'slack:token': data.access_token });
-          req.flash('successMessage', ['Successfully Connected!']);
+          req.flash('successMessage', [t('message.successfully_connected')]);
         }
         catch (err) {
-          req.flash('errorMessage', ['Failed to save access_token. Please try again.']);
+          req.flash('errorMessage', [t('message.fail_to_save_access_token')]);
         }
 
         return res.redirect('/admin/notification');
       })
       .catch((err) => {
         debug('oauth response ERROR', err);
-        req.flash('errorMessage', ['Failed to fetch access_token. Please do connect again.']);
+        req.flash('errorMessage', [t('message.fail_to_fetch_access_token')]);
         return res.redirect('/admin/notification');
       });
   };
@@ -200,7 +186,7 @@ module.exports = function(crowi, app) {
   // app.post('/admin/notification/slackSetting/disconnect' , admin.notification.disconnectFromSlack);
   actions.notification.disconnectFromSlack = async function(req, res) {
     await configManager.updateConfigsInTheSameNamespace('notification', { 'slack:token': '' });
-    req.flash('successMessage', ['Successfully Disconnected!']);
+    req.flash('successMessage', [req.t('successfully_disconnected')]);
 
     return res.redirect('/admin/notification');
   };
@@ -232,66 +218,11 @@ module.exports = function(crowi, app) {
     return res.render('admin/users');
   };
 
-  // これやったときの relation の挙動未確認
-  actions.user.removeCompletely = function(req, res) {
-    // ユーザーの物理削除
-    const id = req.params.id;
-
-    User.removeCompletelyById(id, (err, removed) => {
-      if (err) {
-        debug('Error while removing user.', err, id);
-        req.flash('errorMessage', '完全な削除に失敗しました。');
-      }
-      else {
-        req.flash('successMessage', '削除しました');
-      }
-      return res.redirect('/admin/users');
-    });
-  };
-
-  // app.post('/_api/admin/users.resetPassword' , admin.api.usersResetPassword);
-  actions.user.resetPassword = async function(req, res) {
-    const id = req.body.user_id;
-    const User = crowi.model('User');
-
-    try {
-      const newPassword = await User.resetPasswordByRandomString(id);
-
-      const user = await User.findById(id);
-
-      const result = { user: user.toObject(), newPassword };
-      return res.json(ApiResponse.success(result));
-    }
-    catch (err) {
-      debug('Error on reseting password', err);
-      return res.json(ApiResponse.error(err));
-    }
-  };
-
   actions.externalAccount = {};
   actions.externalAccount.index = function(req, res) {
     return res.render('admin/external-accounts');
   };
 
-  actions.externalAccount.remove = async function(req, res) {
-    const id = req.params.id;
-
-    let account = null;
-
-    try {
-      account = await ExternalAccount.findByIdAndRemove(id);
-      if (account == null) {
-        throw new Error('削除に失敗しました。');
-      }
-    }
-    catch (err) {
-      req.flash('errorMessage', err.message);
-      return res.redirect('/admin/users/external-accounts');
-    }
-
-    req.flash('successMessage', `外部アカウント '${account.providerType}/${account.accountId}' を削除しました`);
-    return res.redirect('/admin/users/external-accounts');
-  };
 
   actions.userGroup = {};
   actions.userGroup.index = function(req, res) {
@@ -405,23 +336,6 @@ module.exports = function(crowi, app) {
   };
 
   actions.api = {};
-
-  // app.get('/_api/admin/users.search' , admin.api.userSearch);
-  actions.api.usersSearch = function(req, res) {
-    const User = crowi.model('User');
-    const email = req.query.email;
-
-    User.findUsersByPartOfEmail(email, {})
-      .then((users) => {
-        const result = {
-          data: users,
-        };
-        return res.json(ApiResponse.success(result));
-      })
-      .catch((err) => {
-        return res.json(ApiResponse.error());
-      });
-  };
 
   /**
    * save esa settings, update config cache, and response json

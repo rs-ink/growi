@@ -8,6 +8,8 @@ div.body {
 }
 
 .wiki {
+  @extend .text-break;
+
   font-size: 15px;
 
   // override line-height except hljs and child of it.
@@ -65,6 +67,7 @@ div.body {
     margin: 0 0 30px 0;
     font-size: 0.9em;
     color: lighten($gray-800, 35%);
+    border-left: 0.3rem solid #ddd;
   }
 
   img {

@@ -4,8 +4,8 @@ import ReactCardFlip from 'react-card-flip';
 
 import { withTranslation } from 'react-i18next';
 
+import AppContainer from '../services/AppContainer';
 import { withUnstatedContainers } from './UnstatedUtils';
-import NoLoginContainer from '../services/NoLoginContainer';
 
 class LoginForm extends React.Component {
 
@@ -27,7 +27,6 @@ class LoginForm extends React.Component {
     if (hash === '#register') {
       this.state.isRegistering = true;
     }
-    console.log('hash::', hash);
   }
 
   switchForm() {
@@ -36,12 +35,12 @@ class LoginForm extends React.Component {
 
   handleLoginWithExternalAuth(e) {
     const auth = e.currentTarget.id;
-    const csrf = this.props.noLoginContainer.csrfToken;
+    const { csrf } = this.props.appContainer;
     window.location.href = `/passport/${auth}?_csrf=${csrf}`;
   }
 
   renderLocalOrLdapLoginForm() {
-    const { t, noLoginContainer, isLdapStrategySetup } = this.props;
+    const { t, appContainer, isLdapStrategySetup } = this.props;
 
     return (
       <form role="form" action="/login" method="post">
@@ -51,8 +50,7 @@ class LoginForm extends React.Component {
               <i className="icon-user"></i>
             </span>
           </div>
-          <input type="text" className="form-control rounded-0" placeholder="Username or E-mail"
-                 name="loginForm[username]"/>
+          <input type="text" className="form-control rounded-0" placeholder="Username or E-mail" name="loginForm[username]" />
           {isLdapStrategySetup && (
             <div className="input-group-append">
               <small className="input-group-text text-success">
@@ -68,11 +66,11 @@ class LoginForm extends React.Component {
               <i className="icon-lock"></i>
             </span>
           </div>
-          <input type="password" className="form-control rounded-0" placeholder="Password" name="loginForm[password]"/>
+          <input type="password" className="form-control rounded-0" placeholder="Password" name="loginForm[password]" />
         </div>
 
         <div className="input-group my-4">
-          <input type="hidden" name="_csrf" value={noLoginContainer.csrfToken}/>
+          <input type="hidden" name="_csrf" value={appContainer.csrfToken} />
           <button type="submit" id="login" className="btn btn-fill rounded-0 login mx-auto">
             <div className="eff"></div>
             <span className="btn-label">
@@ -149,10 +147,10 @@ class LoginForm extends React.Component {
   renderRegisterForm() {
     const {
       t,
+      appContainer,
       username,
       name,
       email,
-      noLoginContainer,
       registrationMode,
       registrationWhiteList,
     } = this.props;
@@ -160,11 +158,11 @@ class LoginForm extends React.Component {
     return (
       <React.Fragment>
         {registrationMode === 'Restricted' && (
-          <p className="alert alert-warning">
-            {t('page_register.notice.restricted')}
-            <br/>
-            {t('page_register.notice.restricted_defail')}
-          </p>
+        <p className="alert alert-warning">
+          {t('page_register.notice.restricted')}
+          <br />
+          {t('page_register.notice.restricted_defail')}
+        </p>
         )}
         <form role="form" action="/register" method="post" id="register-form">
           <div className="input-group" id="input-group-username">
@@ -173,8 +171,7 @@ class LoginForm extends React.Component {
                 <i className="icon-user"></i>
               </span>
             </div>
-            <input type="text" className="form-control rounded-0" placeholder={t('User ID')}
-                   name="registerForm[username]" defaultValue={username} required/>
+            <input type="text" className="form-control rounded-0" placeholder={t('User ID')} name="registerForm[username]" defaultValue={username} required />
           </div>
           <p className="form-text text-danger">
             <span id="help-block-username"></span>
@@ -186,8 +183,7 @@ class LoginForm extends React.Component {
                 <i className="icon-tag"></i>
               </span>
             </div>
-            <input type="text" className="form-control rounded-0" placeholder={t('Name')} name="registerForm[name]"
-                   defaultValue={name} required/>
+            <input type="text" className="form-control rounded-0" placeholder={t('Name')} name="registerForm[name]" defaultValue={name} required />
           </div>
 
           <div className="input-group">
@@ -196,23 +192,22 @@ class LoginForm extends React.Component {
                 <i className="icon-envelope"></i>
               </span>
             </div>
-            <input type="email" className="form-control rounded-0" placeholder={t('Email')} name="registerForm[email]"
-                   defaultValue={email} required/>
+            <input type="email" className="form-control rounded-0" placeholder={t('Email')} name="registerForm[email]" defaultValue={email} required />
           </div>
 
           {registrationWhiteList.length > 0 && (
-            <>
-              <p className="form-text">{t('page_register.form_help.email')}</p>
-              <ul>
-                {registrationWhiteList.map((elem) => {
+          <>
+            <p className="form-text">{t('page_register.form_help.email')}</p>
+            <ul>
+              {registrationWhiteList.map((elem) => {
                   return (
                     <li key={elem}>
                       <code>{elem}</code>
                     </li>
                   );
                 })}
-              </ul>
-            </>
+            </ul>
+          </>
           )}
 
           <div className="input-group">
@@ -221,12 +216,11 @@ class LoginForm extends React.Component {
                 <i className="icon-lock"></i>
               </span>
             </div>
-            <input type="password" className="form-control rounded-0" placeholder={t('Password')}
-                   name="registerForm[password]" required/>
+            <input type="password" className="form-control rounded-0" placeholder={t('Password')} name="registerForm[password]" required />
           </div>
 
           <div className="input-group justify-content-center my-4">
-            <input type="hidden" name="_csrf" value={noLoginContainer.csrfToken}/>
+            <input type="hidden" name="_csrf" value={appContainer.csrfToken} />
             <button type="submit" className="btn btn-fill rounded-0" id="register">
               <div className="eff"></div>
               <span className="btn-label">
@@ -279,7 +273,7 @@ class LoginForm extends React.Component {
                       </a>
                     </div>
                   </div>
-                )}
+              )}
               </div>
               <div className="back">
                 {isRegistrationEnabled && this.renderRegisterForm()}
@@ -299,12 +293,13 @@ class LoginForm extends React.Component {
 /**
  * Wrapper component for using unstated
  */
-const LoginFormWrapper = withUnstatedContainers(LoginForm, [NoLoginContainer]);
+const LoginFormWrapper = withUnstatedContainers(LoginForm, [AppContainer]);
 
 LoginForm.propTypes = {
   // i18next
   t: PropTypes.func.isRequired,
-  noLoginContainer: PropTypes.instanceOf(NoLoginContainer).isRequired,
+  appContainer: PropTypes.instanceOf(AppContainer).isRequired,
+
   isRegistering: PropTypes.bool,
   username: PropTypes.string,
   name: PropTypes.string,

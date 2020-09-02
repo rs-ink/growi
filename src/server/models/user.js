@@ -11,6 +11,8 @@ const md5 = require('md5');
 const ObjectId = mongoose.Schema.Types.ObjectId;
 const crypto = require('crypto');
 
+const { listLocaleIds } = require('@commons/util/locale-utils');
+
 module.exports = function(crowi) {
   const STATUS_REGISTERED = 1;
   const STATUS_ACTIVE = 2;
@@ -18,15 +20,7 @@ module.exports = function(crowi) {
   const STATUS_DELETED = 4;
   const STATUS_INVITED = 5;
   const USER_PUBLIC_FIELDS = '_id image isEmailPublished isGravatarEnabled googleId name username email introduction'
-  + 'status lang createdAt lastLoginAt admin imageUrlCached';
-  /* eslint-disable no-unused-vars */
-  const IMAGE_POPULATION = { path: 'imageAttachment', select: 'filePathProxied' };
-
-  const LANG_EN = 'en';
-  const LANG_EN_US = 'en-US';
-  const LANG_EN_GB = 'en-GB';
-  const LANG_JA = 'ja';
-  const LANG_CN = 'zh-CN';
+  + ' status lang createdAt lastLoginAt admin imageUrlCached';
 
   const PAGE_ITEMS = 50;
 
@@ -59,9 +53,8 @@ module.exports = function(crowi) {
     apiToken: { type: String, index: true },
     lang: {
       type: String,
-      // eslint-disable-next-line no-eval
-      enum: Object.keys(getLanguageLabels()).map((k) => { return eval(k) }),
-      default: LANG_EN_US,
+      enum: listLocaleIds(),
+      default: 'en_US',
     },
     status: {
       type: Number, required: true, default: STATUS_ACTIVE, index: true,
@@ -148,16 +141,6 @@ module.exports = function(crowi) {
     return hasher.digest('base64');
   }
 
-  function getLanguageLabels() {
-    const lang = {};
-    lang.LANG_EN = LANG_EN;
-    lang.LANG_EN_US = LANG_EN_US;
-    lang.LANG_EN_GB = LANG_EN_GB;
-    lang.LANG_JA = LANG_JA;
-    lang.LANG_CN = LANG_CN;
-    return lang;
-  }
-
   userSchema.methods.isPasswordSet = function() {
     if (this.password) {
       return true;
@@ -224,21 +207,23 @@ module.exports = function(crowi) {
     return userData;
   };
 
+  // TODO: create UserService and transplant this method because image uploading depends on AttachmentService
   userSchema.methods.updateImage = async function(attachment) {
     this.imageAttachment = attachment;
     await this.updateImageUrlCached();
     return this.save();
   };
 
+  // TODO: create UserService and transplant this method because image deletion depends on AttachmentService
   userSchema.methods.deleteImage = async function() {
     validateCrowi();
-    const Attachment = crowi.model('Attachment');
 
     // the 'image' field became DEPRECATED in v3.3.8
     this.image = undefined;
 
     if (this.imageAttachment != null) {
-      Attachment.removeWithSubstanceById(this.imageAttachment._id);
+      const { attachmentService } = crowi;
+      attachmentService.removeAttachment(this.imageAttachment._id);
     }
 
     this.imageAttachment = undefined;
@@ -356,7 +341,6 @@ module.exports = function(crowi) {
     });
   };
 
-  userSchema.statics.getLanguageLabels = getLanguageLabels;
   userSchema.statics.getUserStatusLabels = function() {
     const userStatus = {};
     userStatus[STATUS_REGISTERED] = 'Approval Pending';
@@ -400,7 +384,7 @@ module.exports = function(crowi) {
     option = option || {};
 
     const sort = option.sort || { createdAt: -1 };
-    const fields = option.fields || USER_PUBLIC_FIELDS;
+    const fields = option.fields || {};
 
     let status = option.status || [STATUS_ACTIVE, STATUS_SUSPENDED];
     if (!Array.isArray(status)) {
@@ -419,45 +403,16 @@ module.exports = function(crowi) {
 
     const sort = option.sort || { createdAt: -1 };
     const status = option.status || STATUS_ACTIVE;
-    const fields = option.fields || USER_PUBLIC_FIELDS;
+    const fields = option.fields || {};
 
     return this.find({ _id: { $in: ids }, status })
       .select(fields)
       .sort(sort);
   };
 
-  userSchema.statics.findAdmins = function(callback) {
-    this.find({ admin: true })
-      .exec((err, admins) => {
-        debug('Admins: ', admins);
-        callback(err, admins);
-      });
+  userSchema.statics.findAdmins = async function() {
+    return this.find({ admin: true });
   };
-
-  userSchema.statics.findUsersByPartOfEmail = function(emailPart, options) {
-    const status = options.status || null;
-    const emailPartRegExp = new RegExp(emailPart.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'));
-    const User = this;
-
-    return new Promise((resolve, reject) => {
-      const query = User.find({ email: emailPartRegExp }, USER_PUBLIC_FIELDS);
-
-      if (status) {
-        query.and({ status });
-      }
-
-      query
-        .limit(PAGE_ITEMS + 1)
-        .exec((err, userData) => {
-          if (err) {
-            return reject(err);
-          }
-
-          return resolve(userData);
-        });
-    });
-  };
-
 
   userSchema.statics.findUserByUsername = function(username) {
     if (username == null) {
@@ -557,30 +512,6 @@ module.exports = function(crowi) {
     });
   };
 
-  userSchema.statics.removeCompletelyById = function(id, callback) {
-    const User = this;
-    User.findById(id, (err, userData) => {
-      if (!userData) {
-        return callback(err, null);
-      }
-
-      debug('Removing user:', userData);
-      // 物理削除可能なのは、承認待ちユーザー、招待中ユーザーのみ
-      // 利用を一度開始したユーザーは論理削除のみ可能
-      if (userData.status !== STATUS_REGISTERED && userData.status !== STATUS_INVITED) {
-        return callback(new Error('Cannot remove completely the user whoes status is not INVITED'), null);
-      }
-
-      userData.remove((err) => {
-        if (err) {
-          return callback(err, null);
-        }
-
-        return callback(null, 1);
-      });
-    });
-  };
-
   userSchema.statics.resetPasswordByRandomString = async function(id) {
     const user = await this.findById(id);
 
@@ -650,8 +581,8 @@ module.exports = function(crowi) {
   };
 
   userSchema.statics.sendEmailbyUserList = async function(userList) {
-    const mailer = crowi.getMailer();
-    const appTitle = crowi.appService.getAppTitle();
+    const { appService, mailService } = crowi;
+    const appTitle = appService.getAppTitle();
 
     await Promise.all(userList.map(async(user) => {
       if (user.password == null) {
@@ -659,10 +590,10 @@ module.exports = function(crowi) {
       }
 
       try {
-        return mailer.send({
+        return mailService.send({
           to: user.email,
           subject: `Invitation to ${appTitle}`,
-          template: path.join(crowi.localeDir, 'en-US/admin/userInvitation.txt'),
+          template: path.join(crowi.localeDir, 'en_US/admin/userInvitation.txt'),
           vars: {
             email: user.email,
             password: user.password,
@@ -794,14 +725,7 @@ module.exports = function(crowi) {
   userSchema.statics.STATUS_DELETED = STATUS_DELETED;
   userSchema.statics.STATUS_INVITED = STATUS_INVITED;
   userSchema.statics.USER_PUBLIC_FIELDS = USER_PUBLIC_FIELDS;
-  userSchema.statics.IMAGE_POPULATION = IMAGE_POPULATION;
   userSchema.statics.PAGE_ITEMS = PAGE_ITEMS;
-
-  userSchema.statics.LANG_EN = LANG_EN;
-  userSchema.statics.LANG_EN_US = LANG_EN_US;
-  userSchema.statics.LANG_EN_GB = LANG_EN_US;
-  userSchema.statics.LANG_JA = LANG_JA;
-  userSchema.statics.LANG_CN = LANG_CN;
 
   return mongoose.model('User', userSchema);
 };

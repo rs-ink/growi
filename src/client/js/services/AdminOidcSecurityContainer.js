@@ -17,12 +17,23 @@ export default class AdminOidcSecurityContainer extends Container {
     super();
 
     this.appContainer = appContainer;
+    this.dummyOidcProviderName = 0;
+    this.dummyOidcProviderNameForError = 1;
 
     this.state = {
       retrieveError: null,
       callbackUrl: urljoin(pathUtils.removeTrailingSlash(appContainer.config.crowi.url), '/passport/oidc/callback'),
-      oidcProviderName: '',
+      // set dummy value tile for using suspense
+      oidcProviderName: this.dummyOidcProviderName,
       oidcIssuerHost: '',
+      oidcAuthorizationEndpoint: '',
+      oidcTokenEndpoint: '',
+      oidcRevocationEndpoint: '',
+      oidcIntrospectionEndpoint: '',
+      oidcUserInfoEndpoint: '',
+      oidcEndSessionEndpoint: '',
+      oidcRegistrationEndpoint: '',
+      oidcJWKSUri: '',
       oidcClientId: '',
       oidcClientSecret: '',
       oidcAttrMapId: '',
@@ -45,6 +56,14 @@ export default class AdminOidcSecurityContainer extends Container {
       this.setState({
         oidcProviderName: oidcAuth.oidcProviderName,
         oidcIssuerHost: oidcAuth.oidcIssuerHost,
+        oidcAuthorizationEndpoint: oidcAuth.oidcAuthorizationEndpoint,
+        oidcTokenEndpoint: oidcAuth.oidcTokenEndpoint,
+        oidcRevocationEndpoint: oidcAuth.oidcRevocationEndpoint,
+        oidcIntrospectionEndpoint: oidcAuth.oidcIntrospectionEndpoint,
+        oidcUserInfoEndpoint: oidcAuth.oidcUserInfoEndpoint,
+        oidcEndSessionEndpoint: oidcAuth.oidcEndSessionEndpoint,
+        oidcRegistrationEndpoint: oidcAuth.oidcRegistrationEndpoint,
+        oidcJWKSUri: oidcAuth.oidcJWKSUri,
         oidcClientId: oidcAuth.oidcClientId,
         oidcClientSecret: oidcAuth.oidcClientSecret,
         oidcAttrMapId: oidcAuth.oidcAttrMapId,
@@ -81,6 +100,62 @@ export default class AdminOidcSecurityContainer extends Container {
    */
   changeOidcIssuerHost(inputValue) {
     this.setState({ oidcIssuerHost: inputValue });
+  }
+
+  /**
+   * Change oidcAuthorizationEndpoint
+   */
+  changeOidcAuthorizationEndpoint(inputValue) {
+    this.setState({ oidcAuthorizationEndpoint: inputValue });
+  }
+
+  /**
+   * Change oidcTokenEndpoint
+   */
+  changeOidcTokenEndpoint(inputValue) {
+    this.setState({ oidcTokenEndpoint: inputValue });
+  }
+
+  /**
+   * Change oidcRevocationEndpoint
+   */
+  changeOidcRevocationEndpoint(inputValue) {
+    this.setState({ oidcRevocationEndpoint: inputValue });
+  }
+
+  /**
+   * Change oidcIntrospectionEndpoint
+   */
+  changeOidcIntrospectionEndpoint(inputValue) {
+    this.setState({ oidcIntrospectionEndpoint: inputValue });
+  }
+
+  /**
+   * Change oidcUserInfoEndpoint
+   */
+  changeOidcUserInfoEndpoint(inputValue) {
+    this.setState({ oidcUserInfoEndpoint: inputValue });
+  }
+
+  /**
+   * Change oidcEndSessionEndpoint
+   */
+  changeOidcEndSessionEndpoint(inputValue) {
+    this.setState({ oidcEndSessionEndpoint: inputValue });
+  }
+
+  /**
+   * Change oidcRegistrationEndpoint
+   */
+  changeOidcRegistrationEndpoint(inputValue) {
+    this.setState({ oidcRegistrationEndpoint: inputValue });
+  }
+
+  /**
+   * Change oidcJWKSUri
+   */
+  changeOidcJWKSUri(inputValue) {
+    this.setState({ oidcJWKSUri: inputValue });
   }
 
   /**
@@ -144,13 +219,37 @@ export default class AdminOidcSecurityContainer extends Container {
    */
   async updateOidcSetting() {
     const {
-      oidcProviderName, oidcIssuerHost, oidcClientId, oidcClientSecret, oidcAttrMapId, oidcAttrMapUserName,
-      oidcAttrMapName, oidcAttrMapEmail, isSameUsernameTreatedAsIdenticalUser, isSameEmailTreatedAsIdenticalUser,
+      oidcProviderName,
+      oidcIssuerHost,
+      oidcAuthorizationEndpoint,
+      oidcTokenEndpoint,
+      oidcRevocationEndpoint,
+      oidcIntrospectionEndpoint,
+      oidcUserInfoEndpoint,
+      oidcEndSessionEndpoint,
+      oidcRegistrationEndpoint,
+      oidcJWKSUri,
+      oidcClientId,
+      oidcClientSecret,
+      oidcAttrMapId,
+      oidcAttrMapUserName,
+      oidcAttrMapName,
+      oidcAttrMapEmail,
+      isSameUsernameTreatedAsIdenticalUser,
+      isSameEmailTreatedAsIdenticalUser,
     } = this.state;
 
     let requestParams = {
       oidcProviderName,
       oidcIssuerHost,
+      oidcAuthorizationEndpoint,
+      oidcTokenEndpoint,
+      oidcRevocationEndpoint,
+      oidcIntrospectionEndpoint,
+      oidcUserInfoEndpoint,
+      oidcEndSessionEndpoint,
+      oidcRegistrationEndpoint,
+      oidcJWKSUri,
       oidcClientId,
       oidcClientSecret,
       oidcAttrMapId,
@@ -168,6 +267,14 @@ export default class AdminOidcSecurityContainer extends Container {
     this.setState({
       oidcProviderName: securitySettingParams.oidcProviderName,
       oidcIssuerHost: securitySettingParams.oidcIssuerHost,
+      oidcAuthorizationEndpoint: securitySettingParams.oidcAuthorizationEndpoint,
+      oidcTokenEndpoint: securitySettingParams.oidcTokenEndpoint,
+      oidcRevocationEndpoint: securitySettingParams.oidcRevocationEndpoint,
+      oidcIntrospectionEndpoint: securitySettingParams.oidcIntrospectionEndpoint,
+      oidcUserInfoEndpoint: securitySettingParams.oidcUserInfoEndpoint,
+      oidcEndSessionEndpoint: securitySettingParams.oidcEndSessionEndpoint,
+      oidcRegistrationEndpoint: securitySettingParams.oidcRegistrationEndpoint,
+      oidcJWKSUri: securitySettingParams.oidcJWKSUri,
       oidcClientId: securitySettingParams.oidcClientId,
       oidcClientSecret: securitySettingParams.oidcClientSecret,
       oidcAttrMapId: securitySettingParams.oidcAttrMapId,

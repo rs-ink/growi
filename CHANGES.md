@@ -1,8 +1,108 @@
 # CHANGES
 
-## v4.0.7-RC
+## v4.1.3-RC
 
-* 
+* Feature: Create/edit linker with GUI
+* Improvement: Paging page histories
+* Improvement: Avoid using `cursor.snapshot()` in preparation for MongoDB version upgrade
+* Improvement: Allow to save "From e-mail address" only in App Settings
+* Improvement: Allow to empty "From e-mail address" in App Settings
+* Improvement: Export/Import archive data serially so as not to waste memory
+* Fix: To be able to delete attachment metadata even when the actual data does not exist
+* Fix: Limit the attrubutes of user data for `/_api/v3/users`
+* Fix: Prevent XSS with SVG
+* Upgrade libs
+    * optimize-css-assets-webpack-plugin
+    * terser-webpack-plugin
+
+## v4.1.2
+
+* Fix: Uploaded images do not displayed
+    * Introduced by v4.1.1
+
+## v4.1.1
+
+* Feature: External share link
+* Improvement: Optimize some features that operate revision data
+    * Page history
+    * Renaming pages
+    * Deleting pages
+* Fix: Cmd+c/v/... does not work on Mac
+    * Introduced by v4.1.0
+* Fix: "Append params" switch of CopyDropdown does not work when multiple CopyDropdown instance exists
+* Fix: "Append params" switch of CopyDropdown escapes spaces
+* Fix: Blockdiag does not be rendered
+* Fix: Access token parser
+
+## v4.1.0
+
+### BREAKING CHANGES
+
+* GROWI v4.1.x no longer support Node.js v10.x
+* GROWI v4.1.x no longer support growi-plugin-attachment-refs@v1
+
+Upgrading Guide: <https://docs.growi.org/en/admin-guide/upgrading/41x.html>
+
+### Updates
+
+* Feature: Server settings synchronization for multiple GROWI Apps
+* Feature: Page status alert synchronization for multiple GROWI Apps
+* Feature: Smooth scroll for anchor links
+* Feature: Mirror Mode with [Konami Code](https://en.wikipedia.org/wiki/Konami_Code)
+* Improvement: Determine whether the "In Use" badge is displayed or not by attachment ID
+* Improvement: draw.io under NO_CDN environment
+* Fix: Deleting/renaming with recursive option affects pages that are inaccessible to active users
+* Fix: DrawioModal cuts without beginning/ending line
+* Fix: New settings of SMTP and AWS SES are not reflected when server is running
+* Fix: Sidebar layout broken when using Kibela layout
+* Support: Support Node.js v14
+* Support: Update libs
+    * mathjax
+
+## v4.0.11
+
+* Fix: Fab on search result page does not displayed
+* Fix: Adjust margin/padding for search result page
+* Fix: PageAlert broken
+    * Introduced by v4.0.9
+
+## v4.0.10
+
+* Improvement: Adjust ToC height
+* Fix: Fail to rename/delete a page set as "Anyone with the link"
+
+## v4.0.9
+
+* Feature: Detailed configurations for OpenID Connect
+    * Authorization Endpoint
+    * Token Endpoint
+    * Revocation Endpoint
+    * Introspection Endpoint
+    * UserInfo Endpoint
+    * Registration Endpoint
+    * JSON Web Key Set URI
+* Improvement: Navigations
+    * New floating subnavigation
+    * New open drawer button
+    * New fixed bottom navbar on mobile
+    * New fixed bottom navbar for editor on mobile
+    * FAB (Floating action button)
+* Improvement: Sticky admin navigation
+* Fix: Reseting password doesn't work
+* Fix: Styles for printing
+* Fix: Unable to create page with original path after emptying trash
+* I18n: Support zh-CN
+
+## v4.0.8  (Missing number)
+
+## v4.0.7
+
+* Feature: Set request timeout for Elasticsearch with env var `ELASTICSEARCH_REQUEST_TIMEOUT`
+* Improvement: Apply styles faster on booting client
+* Fix: Styles are not applyed on installer
+* Fix: Remove last-resort `next()`
+* Fix: Enable/disable Notification settings couldn't change when either of the params is undefined
+* Fix: Text overflow
 
 ## v4.0.6
 
@@ -1348,7 +1448,7 @@ Upgrading Guide: <https://docs.growi.org/en/admin-guide/upgrading/34x.html>
 
 * Fix: The problem that path including round bracket makes something bad
 * Fix: Recursively option processes also unexpedted pages
-* Fix: en-US translation
+* Fix: en_US translation
 
 ## v2.0.7
 

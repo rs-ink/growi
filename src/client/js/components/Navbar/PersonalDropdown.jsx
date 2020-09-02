@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 
 import { withTranslation } from 'react-i18next';
@@ -7,13 +7,32 @@ import { UncontrolledTooltip } from 'reactstrap';
 
 import { withUnstatedContainers } from '../UnstatedUtils';
 import AppContainer from '../../services/AppContainer';
+import NavigationContainer from '../../services/NavigationContainer';
+
+import {
+  isUserPreferenceExists,
+  isDarkMode as isDarkModeByUtil,
+  applyColorScheme,
+  removeUserPreference,
+  updateUserPreference,
+  updateUserPreferenceWithOsSettings,
+} from '../../util/color-scheme';
 
 import UserPicture from '../User/UserPicture';
 
+import SidebarDrawerIcon from '../Icons/SidebarDrawerIcon';
+import SidebarDockIcon from '../Icons/SidebarDockIcon';
+import MoonIcon from '../Icons/MoonIcon';
+import SunIcon from '../Icons/SunIcon';
+
+
 const PersonalDropdown = (props) => {
 
-  const { t, appContainer } = props;
+  const { t, appContainer, navigationContainer } = props;
   const user = appContainer.currentUser || {};
+
+  const [useOsSettings, setOsSettings] = useState(!isUserPreferenceExists());
+  const [isDarkMode, setIsDarkMode] = useState(isDarkModeByUtil());
 
   const logoutHandler = () => {
     const { interceptorManager } = appContainer;
@@ -28,26 +47,33 @@ const PersonalDropdown = (props) => {
   };
 
   const preferDrawerModeSwitchModifiedHandler = (bool) => {
-    appContainer.setDrawerModePreference(bool);
+    navigationContainer.setDrawerModePreference(bool);
   };
 
   const preferDrawerModeOnEditSwitchModifiedHandler = (bool) => {
-    appContainer.setDrawerModePreferenceOnEdit(bool);
+    navigationContainer.setDrawerModePreferenceOnEdit(bool);
   };
 
   const followOsCheckboxModifiedHandler = (bool) => {
-    // reset user preference
     if (bool) {
-      appContainer.setColorSchemePreference(null);
+      removeUserPreference();
     }
-    // set preferDarkModeByMediaQuery as users preference
     else {
-      appContainer.setColorSchemePreference(appContainer.state.preferDarkModeByMediaQuery);
+      updateUserPreferenceWithOsSettings();
     }
+    applyColorScheme();
+
+    // update states
+    setOsSettings(bool);
+    setIsDarkMode(isDarkModeByUtil());
   };
 
   const userPreferenceSwitchModifiedHandler = (bool) => {
-    appContainer.setColorSchemePreference(bool);
+    updateUserPreference(bool);
+    applyColorScheme();
+
+    // update state
+    setIsDarkMode(isDarkModeByUtil());
   };
 
 
@@ -55,27 +81,16 @@ const PersonalDropdown = (props) => {
    * render
    */
   const {
-    preferDarkModeByMediaQuery, preferDarkModeByUser, preferDrawerModeByUser, preferDrawerModeOnEditByUser,
-  } = appContainer.state;
-  const isUserPreferenceExists = preferDarkModeByUser != null;
-  const isDarkMode = () => {
-    if (isUserPreferenceExists) {
-      return preferDarkModeByUser;
-    }
-    return preferDarkModeByMediaQuery;
-  };
+    preferDrawerModeByUser, preferDrawerModeOnEditByUser,
+  } = navigationContainer.state;
 
   /* eslint-disable react/prop-types */
-  const DrawerIcon = props => (
+  const IconWithTooltip = ({
+    id, label, children, additionalClasses,
+  }) => (
     <>
-      <i id={props.id} className="icon-drawer px-2"></i>
-      <UncontrolledTooltip placement="bottom" fade={false} target={props.id}>Drawer</UncontrolledTooltip>
-    </>
-  );
-  const DockIcon = props => (
-    <>
-      <i id={props.id} className="ti-layout-sidebar-left px-2"></i>
-      <UncontrolledTooltip placement="bottom" fade={false} target={props.id}>Dock</UncontrolledTooltip>
+      <div id={id} className={`px-2 grw-icon-container ${additionalClasses != null ? additionalClasses : ''}`}>{children}</div>
+      <UncontrolledTooltip placement="bottom" fade={false} target={id}>{label}</UncontrolledTooltip>
     </>
   );
   /* eslint-enable react/prop-types */
@@ -105,10 +120,10 @@ const PersonalDropdown = (props) => {
           </div>
 
           <div className="btn-group btn-block mt-2" role="group">
-            <a className="btn btn-sm btn-outline-secondary" href={`/user/${user.username}`}>
+            <a className="btn btn-sm btn-outline-secondary col" href={`/user/${user.username}`}>
               <i className="icon-fw icon-home"></i>{ t('personal_dropdown.home') }
             </a>
-            <a className="btn btn-sm btn-outline-secondary" href="/me">
+            <a className="btn btn-sm btn-outline-secondary col" href="/me">
               <i className="icon-fw icon-wrench"></i>{ t('personal_dropdown.settings') }
             </a>
           </div>
@@ -116,11 +131,14 @@ const PersonalDropdown = (props) => {
 
         <div className="dropdown-divider"></div>
 
+        {/* Sidebar Mode */}
         <h6 className="dropdown-header">{t('personal_dropdown.sidebar_mode')}</h6>
         <form className="px-4">
           <div className="form-row justify-content-center">
             <div className="form-group col-auto mb-0 d-flex align-items-center">
-              <DrawerIcon id="icon-prefer-drawer" />
+              <IconWithTooltip id="iwt-sidebar-drawer" label="Drawer">
+                <SidebarDrawerIcon />
+              </IconWithTooltip>
               <div className="custom-control custom-switch custom-checkbox-secondary ml-2">
                 <input
                   id="swSidebarMode"
@@ -131,15 +149,21 @@ const PersonalDropdown = (props) => {
                 />
                 <label className="custom-control-label" htmlFor="swSidebarMode"></label>
               </div>
-              <DockIcon id="icon-prefer-dock" />
+              <IconWithTooltip id="iwt-sidebar-dock" label="Dock">
+                <SidebarDockIcon />
+              </IconWithTooltip>
             </div>
           </div>
         </form>
+
+        {/* Sidebar Mode on Editor */}
         <h6 className="dropdown-header">{t('personal_dropdown.sidebar_mode_editor')}</h6>
         <form className="px-4">
           <div className="form-row justify-content-center">
             <div className="form-group col-auto mb-0 d-flex align-items-center">
-              <DrawerIcon id="icon-prefer-drawer-on-edit" />
+              <IconWithTooltip id="iwt-sidebar-editor-drawer" label="Drawer">
+                <SidebarDrawerIcon />
+              </IconWithTooltip>
               <div className="custom-control custom-switch custom-checkbox-secondary ml-2">
                 <input
                   id="swSidebarModeOnEditor"
@@ -150,13 +174,16 @@ const PersonalDropdown = (props) => {
                 />
                 <label className="custom-control-label" htmlFor="swSidebarModeOnEditor"></label>
               </div>
-              <DockIcon id="icon-prefer-dock-on-edit" />
+              <IconWithTooltip id="iwt-sidebar-editor-dock" label="Dock">
+                <SidebarDockIcon />
+              </IconWithTooltip>
             </div>
           </div>
         </form>
 
         <div className="dropdown-divider"></div>
 
+        {/* Color Mode */}
         <h6 className="dropdown-header">{t('personal_dropdown.color_mode')}</h6>
         <form className="px-4">
           <div className="form-row">
@@ -166,7 +193,7 @@ const PersonalDropdown = (props) => {
                   id="cbFollowOs"
                   className="custom-control-input"
                   type="checkbox"
-                  checked={!isUserPreferenceExists}
+                  checked={useOsSettings}
                   onChange={e => followOsCheckboxModifiedHandler(e.target.checked)}
                 />
                 <label className="custom-control-label text-nowrap" htmlFor="cbFollowOs">{t('personal_dropdown.use_os_settings')}</label>
@@ -175,19 +202,23 @@ const PersonalDropdown = (props) => {
           </div>
           <div className="form-row justify-content-center">
             <div className="form-group col-auto mb-0 d-flex align-items-center">
-              <span className={isUserPreferenceExists ? '' : 'text-muted'}>Light</span>
+              <IconWithTooltip id="iwt-light" label="Light" additionalClasses={useOsSettings ? 'grw-icon-container-muted' : ''}>
+                <SunIcon />
+              </IconWithTooltip>
               <div className="custom-control custom-switch custom-checkbox-secondary ml-2">
                 <input
                   id="swUserPreference"
                   className="custom-control-input"
                   type="checkbox"
-                  checked={isDarkMode()}
-                  disabled={!isUserPreferenceExists}
+                  checked={isDarkMode}
+                  disabled={useOsSettings}
                   onChange={e => userPreferenceSwitchModifiedHandler(e.target.checked)}
                 />
                 <label className="custom-control-label" htmlFor="swUserPreference"></label>
               </div>
-              <span className={isUserPreferenceExists ? '' : 'text-muted'}>Dark</span>
+              <IconWithTooltip id="iwt-dark" label="Dark" additionalClasses={useOsSettings ? 'grw-icon-container-muted' : ''}>
+                <MoonIcon />
+              </IconWithTooltip>
             </div>
           </div>
         </form>
@@ -205,12 +236,13 @@ const PersonalDropdown = (props) => {
 /**
  * Wrapper component for using unstated
  */
-const PersonalDropdownWrapper = withUnstatedContainers(PersonalDropdown, [AppContainer]);
+const PersonalDropdownWrapper = withUnstatedContainers(PersonalDropdown, [AppContainer, NavigationContainer]);
 
 
 PersonalDropdown.propTypes = {
   t: PropTypes.func.isRequired, //  i18next
   appContainer: PropTypes.instanceOf(AppContainer).isRequired,
+  navigationContainer: PropTypes.instanceOf(NavigationContainer).isRequired,
 };
 
 export default withTranslation()(PersonalDropdownWrapper);

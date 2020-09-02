@@ -17,7 +17,7 @@ describe('User', () => {
       username: 'usertest',
       email: 'usertest@example.com',
       password: 'usertestpass',
-      lang: 'en',
+      lang: 'en_US',
     });
 
     done();
@@ -27,7 +27,7 @@ describe('User', () => {
     describe('The user', () => {
       /* eslint-disable jest/no-test-callback */
       test('should created with createUserByEmailAndPassword', (done) => {
-        User.createUserByEmailAndPassword('Example2 for User Test', 'usertest2', 'usertest2@example.com', 'usertest2pass', 'en', (err, userData) => {
+        User.createUserByEmailAndPassword('Example2 for User Test', 'usertest2', 'usertest2@example.com', 'usertest2pass', 'en_US', (err, userData) => {
           expect(err).toBeNull();
           expect(userData).toBeInstanceOf(User);
           expect(userData.name).toBe('Example2 for User Test');
@@ -42,13 +42,6 @@ describe('User', () => {
         expect(user.name).toBe('Example for User Test');
       });
 
-      test('should be found by findUsersByPartOfEmail', async() => {
-        const users = await User.findUsersByPartOfEmail('usert', {});
-        expect(users).toBeInstanceOf(Array);
-        expect(users.length).toBe(2);
-        expect(users[0]).toBeInstanceOf(User);
-        expect(users[1]).toBeInstanceOf(User);
-      });
     });
   });
 

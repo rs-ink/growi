@@ -49,7 +49,7 @@ class UserInviteModal extends React.Component {
         <label> {t('admin:user_management.invite_modal.emails')}</label>
         <textarea
           className="form-control"
-          placeholder="e.g. user@growi.org"
+          placeholder="e.g.&#13;&#10;user1@growi.org&#13;&#10;user2@growi.org"
           style={{ height: '200px' }}
           value={this.state.emailInputValue}
           onChange={this.handleInput}
@@ -149,7 +149,7 @@ class UserInviteModal extends React.Component {
 
     return (
       <>
-        <p className="text-warning">{t('admin:user_management.existing_email')}</p>
+        <p className="text-warning">{t('admin:user_management.invite_modal.existing_email')}</p>
         <ul>
           {emailList.map((user) => {
             return (

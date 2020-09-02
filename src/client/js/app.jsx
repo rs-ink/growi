@@ -10,11 +10,8 @@ import SearchPage from './components/SearchPage';
 import TagsList from './components/TagsList';
 import PageEditor from './components/PageEditor';
 import PagePathNavForEditor from './components/PageEditor/PagePathNavForEditor';
-// eslint-disable-next-line import/no-duplicates
-import OptionsSelector from './components/PageEditor/OptionsSelector';
-// eslint-disable-next-line import/no-duplicates
+import EditorNavbarBottom from './components/PageEditor/EditorNavbarBottom';
 import { defaultEditorOptions, defaultPreviewOptions } from './components/PageEditor/OptionsSelector';
-import SavePageControls from './components/SavePageControls';
 import PageEditorByHackmd from './components/PageEditorByHackmd';
 import Page from './components/Page';
 import PageHistory from './components/PageHistory';
@@ -22,6 +19,7 @@ import PageComments from './components/PageComments';
 import PageTimeline from './components/PageTimeline';
 import CommentEditorLazyRenderer from './components/PageComment/CommentEditorLazyRenderer';
 import PageManagement from './components/Page/PageManagement';
+import PageShareManagement from './components/Page/PageShareManagement';
 import TrashPageAlert from './components/Page/TrashPageAlert';
 import PageAttachment from './components/PageAttachment';
 import PageStatusAlert from './components/PageStatusAlert';
@@ -32,29 +30,35 @@ import LikerList from './components/User/LikerList';
 import TableOfContents from './components/TableOfContents';
 
 import PersonalSettings from './components/Me/PersonalSettings';
+import NavigationContainer from './services/NavigationContainer';
 import PageContainer from './services/PageContainer';
+import PageHistoryContainer from './services/PageHistoryContainer';
 import CommentContainer from './services/CommentContainer';
 import EditorContainer from './services/EditorContainer';
 import TagContainer from './services/TagContainer';
 import GrowiSubNavigation from './components/Navbar/GrowiSubNavigation';
-import GrowiSubNavigationForUserPage from './components/Navbar/GrowiSubNavigationForUserPage';
+import GrowiSubNavigationSwitcher from './components/Navbar/GrowiSubNavigationSwitcher';
 import PersonalContainer from './services/PersonalContainer';
 
-import { appContainer, componentMappings } from './bootstrap';
+import { appContainer, componentMappings } from './base';
 
-const logger = loggerFactory('growi:app');
+const logger = loggerFactory('growi:cli:app');
+
+appContainer.initContents();
 
 const { i18n } = appContainer;
-const websocketContainer = appContainer.getContainer('WebsocketContainer');
+const socketIoContainer = appContainer.getContainer('SocketIoContainer');
 
 // create unstated container instance
+const navigationContainer = new NavigationContainer(appContainer);
 const pageContainer = new PageContainer(appContainer);
+const pageHistoryContainer = new PageHistoryContainer(appContainer, pageContainer);
 const commentContainer = new CommentContainer(appContainer);
 const editorContainer = new EditorContainer(appContainer, defaultEditorOptions, defaultPreviewOptions);
 const tagContainer = new TagContainer(appContainer);
 const personalContainer = new PersonalContainer(appContainer);
 const injectableContainers = [
-  appContainer, websocketContainer, pageContainer, commentContainer, editorContainer, tagContainer, personalContainer,
+  appContainer, socketIoContainer, navigationContainer, pageContainer, pageHistoryContainer, commentContainer, editorContainer, tagContainer, personalContainer,
 ];
 
 logger.info('unstated containers have been initialized');
@@ -70,11 +74,7 @@ Object.assign(componentMappings, {
   // 'revision-history': <PageHistory pageId={pageId} />,
   'tags-page': <TagsList crowi={appContainer} />,
 
-  'page-editor': <PageEditor />,
-  'page-editor-path-nav': <PagePathNavForEditor />,
-  'page-editor-options-selector': <OptionsSelector crowi={appContainer} />,
-  'page-status-alert': <PageStatusAlert />,
-  'save-page-controls': <SavePageControls />,
+  'grw-page-status-alert-container': <PageStatusAlert />,
 
   'trash-page-alert': <TrashPageAlert />,
 
@@ -86,11 +86,11 @@ Object.assign(componentMappings, {
 // additional definitions if data exists
 if (pageContainer.state.pageId != null) {
   Object.assign(componentMappings, {
-    'page-editor-with-hackmd': <PageEditorByHackmd />,
     'page-comments-list': <PageComments />,
-    'page-attachment': <PageAttachment />,
     'page-comment-write': <CommentEditorLazyRenderer />,
+    'page-attachment': <PageAttachment />,
     'page-management': <PageManagement />,
+    'page-share-management': <PageShareManagement />,
 
     'revision-toc': <TableOfContents />,
     'seen-user-list': <SeenUserList />,
@@ -104,9 +104,22 @@ if (pageContainer.state.path != null) {
   Object.assign(componentMappings, {
     // eslint-disable-next-line quote-props
     'page': <Page />,
-    'grw-subnav': <GrowiSubNavigation />,
-    'grw-subnav-for-user-page': <GrowiSubNavigationForUserPage />,
+    'grw-subnav-container': <GrowiSubNavigation />,
+    'grw-subnav-switcher-container': <GrowiSubNavigationSwitcher />,
   });
+}
+// additional definitions if user is logged in
+if (appContainer.currentUser != null) {
+  Object.assign(componentMappings, {
+    'page-editor': <PageEditor />,
+    'page-editor-path-nav': <PagePathNavForEditor />,
+    'page-editor-navbar-bottom-container': <EditorNavbarBottom />,
+  });
+  if (pageContainer.state.pageId != null) {
+    Object.assign(componentMappings, {
+      'page-editor-with-hackmd': <PageEditorByHackmd />,
+    });
+  }
 }
 
 Object.keys(componentMappings).forEach((key) => {
@@ -130,7 +143,9 @@ $('a[data-toggle="tab"][href="#revision-history"]').on('show.bs.tab', () => {
   ReactDOM.render(
     <I18nextProvider i18n={i18n}>
       <ErrorBoundary>
-        <PageHistory pageId={pageContainer.state.pageId} crowi={appContainer} />
+        <Provider inject={injectableContainers}>
+          <PageHistory />
+        </Provider>
       </ErrorBoundary>
     </I18nextProvider>, document.getElementById('revision-history'),
   );

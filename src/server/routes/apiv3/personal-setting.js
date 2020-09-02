@@ -1,5 +1,4 @@
 /* eslint-disable no-unused-vars */
-
 const loggerFactory = require('@alias/logger');
 
 const logger = loggerFactory('growi:routes:apiv3:personal-setting');
@@ -8,10 +7,11 @@ const express = require('express');
 
 const passport = require('passport');
 
+const { listLocaleIds } = require('@commons/util/locale-utils');
+
 const router = express.Router();
 
-
-const { body } = require('express-validator/check');
+const { body } = require('express-validator');
 const ErrorV3 = require('../../models/vo/error-apiv3');
 
 /**
@@ -65,18 +65,18 @@ const ErrorV3 = require('../../models/vo/error-apiv3');
  *            type: string
  */
 module.exports = (crowi) => {
-  const accessTokenParser = require('../../middleware/access-token-parser')(crowi);
-  const loginRequiredStrictly = require('../../middleware/login-required')(crowi);
-  const csrf = require('../../middleware/csrf')(crowi);
+  const accessTokenParser = require('../../middlewares/access-token-parser')(crowi);
+  const loginRequiredStrictly = require('../../middlewares/login-required')(crowi);
+  const csrf = require('../../middlewares/csrf')(crowi);
+  const apiV3FormValidator = require('../../middlewares/apiv3-form-validator')(crowi);
 
   const { User, ExternalAccount } = crowi.models;
-  const { ApiV3FormValidator } = crowi.middlewares;
 
   const validator = {
     personal: [
       body('name').isString().not().isEmpty(),
       body('email').isEmail(),
-      body('lang').isString().isIn(['en-US', 'ja', 'zh-CN']),
+      body('lang').isString().isIn(listLocaleIds()),
       body('isEmailPublished').isBoolean(),
     ],
     imageType: [
@@ -122,9 +122,57 @@ module.exports = (crowi) => {
    *                      type: object
    *                      description: personal params
    */
-  router.get('/', accessTokenParser, loginRequiredStrictly, async (req, res) => {
-    const currentUser = await User.findUserByUsername(req.user.username);
-    return res.apiv3({ currentUser });
+  router.get('/', accessTokenParser, loginRequiredStrictly, async(req, res) => {
+    const { username } = req.user;
+
+    try {
+      const user = await User.findUserByUsername(username);
+
+      // return email whether it's private
+      const { email } = user;
+      const currentUser = user.toObject();
+      currentUser.email = email;
+
+      return res.apiv3({ currentUser });
+    }
+    catch (err) {
+      logger.error(err);
+      return res.apiv3Err('update-personal-settings-failed');
+    }
+  });
+
+  /**
+   * @swagger
+   *
+   *    /personal-setting/is-password-set:
+   *      get:
+   *        tags: [PersonalSetting]
+   *        operationId: getIsPasswordSet
+   *        summary: /personal-setting
+   *        description: Get whether a password has been set
+   *        responses:
+   *          200:
+   *            description: Whether a password has been set
+   *            content:
+   *              application/json:
+   *                schema:
+   *                  properties:
+   *                    isPasswordSet:
+   *                      type: boolean
+   */
+  router.get('/is-password-set', accessTokenParser, loginRequiredStrictly, async(req, res) => {
+    const { username } = req.user;
+
+    try {
+      const user = await User.findUserByUsername(username);
+      const isPasswordSet = user.isPasswordSet();
+      return res.apiv3({ isPasswordSet });
+    }
+    catch (err) {
+      logger.error(err);
+      return res.apiv3Err('fail-to-get-whether-password-is-set');
+    }
+
   });
 
   /**
@@ -153,7 +201,7 @@ module.exports = (crowi) => {
    *                      type: object
    *                      description: personal params
    */
-  router.put('/', accessTokenParser, loginRequiredStrictly, csrf, validator.personal, ApiV3FormValidator, async (req, res) => {
+  router.put('/', accessTokenParser, loginRequiredStrictly, csrf, validator.personal, apiV3FormValidator, async(req, res) => {
 
     try {
       const user = await User.findOne({ _id: req.user.id });
@@ -165,8 +213,9 @@ module.exports = (crowi) => {
       const updatedUser = await user.save();
       req.i18n.changeLanguage(req.body.lang);
       return res.apiv3({ updatedUser });
-    } catch (err) {
-      logger.error('asdfasdf::::', err);
+    }
+    catch (err) {
+      logger.error(err);
       return res.apiv3Err('update-personal-settings-failed');
     }
 
@@ -192,13 +241,14 @@ module.exports = (crowi) => {
    *                      type: object
    *                      description: user data
    */
-  router.put('/image-type', accessTokenParser, loginRequiredStrictly, csrf, validator.imageType, ApiV3FormValidator, async (req, res) => {
+  router.put('/image-type', accessTokenParser, loginRequiredStrictly, csrf, validator.imageType, apiV3FormValidator, async(req, res) => {
     const { isGravatarEnabled } = req.body;
 
     try {
       const userData = await req.user.updateIsGravatarEnabled(isGravatarEnabled);
       return res.apiv3({ userData });
-    } catch (err) {
+    }
+    catch (err) {
       logger.error(err);
       return res.apiv3Err('update-personal-settings-failed');
     }
@@ -224,13 +274,14 @@ module.exports = (crowi) => {
    *                      type: object
    *                      description: array of external accounts
    */
-  router.get('/external-accounts', accessTokenParser, loginRequiredStrictly, async (req, res) => {
+  router.get('/external-accounts', accessTokenParser, loginRequiredStrictly, async(req, res) => {
     const userData = req.user;
 
     try {
       const externalAccounts = await ExternalAccount.find({ user: userData });
       return res.apiv3({ externalAccounts });
-    } catch (err) {
+    }
+    catch (err) {
       logger.error(err);
       return res.apiv3Err('get-external-accounts-failed');
     }
@@ -263,7 +314,7 @@ module.exports = (crowi) => {
    *                      type: object
    *                      description: user data updated
    */
-  router.put('/password', accessTokenParser, loginRequiredStrictly, csrf, validator.password, ApiV3FormValidator, async (req, res) => {
+  router.put('/password', accessTokenParser, loginRequiredStrictly, csrf, validator.password, apiV3FormValidator, async(req, res) => {
     const { body, user } = req;
     const { oldPassword, newPassword } = body;
 
@@ -273,7 +324,8 @@ module.exports = (crowi) => {
     try {
       const userData = await user.updatePassword(newPassword);
       return res.apiv3({ userData });
-    } catch (err) {
+    }
+    catch (err) {
       logger.error(err);
       return res.apiv3Err('update-password-failed');
     }
@@ -300,13 +352,14 @@ module.exports = (crowi) => {
    *                      type: object
    *                      description: user data
    */
-  router.put('/api-token', loginRequiredStrictly, csrf, async (req, res) => {
+  router.put('/api-token', loginRequiredStrictly, csrf, async(req, res) => {
     const { user } = req;
 
     try {
       const userData = await user.updateApiToken();
       return res.apiv3({ userData });
-    } catch (err) {
+    }
+    catch (err) {
       logger.error(err);
       return res.apiv3Err('update-api-token-failed');
     }
@@ -339,7 +392,7 @@ module.exports = (crowi) => {
    *                      type: object
    *                      description: Ldap account associate to me
    */
-  router.put('/associate-ldap', accessTokenParser, loginRequiredStrictly, csrf, validator.associateLdap, ApiV3FormValidator, async (req, res) => {
+  router.put('/associate-ldap', accessTokenParser, loginRequiredStrictly, csrf, validator.associateLdap, apiV3FormValidator, async(req, res) => {
     const { passportService } = crowi;
     const { user, body } = req;
     const { username } = body;
@@ -353,7 +406,8 @@ module.exports = (crowi) => {
       await passport.authenticate('ldapauth');
       const associateUser = await ExternalAccount.associate('ldap', username, user);
       return res.apiv3({ associateUser });
-    } catch (err) {
+    }
+    catch (err) {
       logger.error(err);
       return res.apiv3Err('associate-ldap-account-failed');
     }
@@ -386,7 +440,7 @@ module.exports = (crowi) => {
    *                      type: object
    *                      description: Ldap account disassociate to me
    */
-  router.put('/disassociate-ldap', accessTokenParser, loginRequiredStrictly, csrf, validator.disassociateLdap, ApiV3FormValidator, async (req, res) => {
+  router.put('/disassociate-ldap', accessTokenParser, loginRequiredStrictly, csrf, validator.disassociateLdap, apiV3FormValidator, async(req, res) => {
     const { user, body } = req;
     const { providerType, accountId } = body;
 
@@ -398,7 +452,8 @@ module.exports = (crowi) => {
       }
       const disassociateUser = await ExternalAccount.findOneAndRemove({ providerType, accountId, user });
       return res.apiv3({ disassociateUser });
-    } catch (err) {
+    }
+    catch (err) {
       logger.error(err);
       return res.apiv3Err('disassociate-ldap-account-failed');
     }

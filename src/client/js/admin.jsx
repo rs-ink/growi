@@ -23,11 +23,15 @@ import ExportArchiveDataPage from './components/Admin/ExportArchiveDataPage';
 import FullTextSearchManagement from './components/Admin/FullTextSearchManagement';
 import AdminNavigation from './components/Admin/Common/AdminNavigation';
 
+import NavigationContainer from './services/NavigationContainer';
+
+import AdminSocketIoContainer from './services/AdminSocketIoContainer';
 import AdminHomeContainer from './services/AdminHomeContainer';
 import AdminCustomizeContainer from './services/AdminCustomizeContainer';
 import AdminUserGroupDetailContainer from './services/AdminUserGroupDetailContainer';
 import AdminUsersContainer from './services/AdminUsersContainer';
 import AdminAppContainer from './services/AdminAppContainer';
+import AdminImportContainer from './services/AdminImportContainer';
 import AdminMarkDownContainer from './services/AdminMarkDownContainer';
 import AdminExternalAccountsContainer from './services/AdminExternalAccountsContainer';
 import AdminGeneralSecurityContainer from './services/AdminGeneralSecurityContainer';
@@ -41,15 +45,19 @@ import AdminGitHubSecurityContainer from './services/AdminGitHubSecurityContaine
 import AdminTwitterSecurityContainer from './services/AdminTwitterSecurityContainer';
 import AdminNotificationContainer from './services/AdminNotificationContainer';
 
-import { appContainer, componentMappings } from './bootstrap';
+import { appContainer, componentMappings } from './base';
 
 const logger = loggerFactory('growi:admin');
 
+appContainer.initContents();
+
 const { i18n } = appContainer;
-const websocketContainer = appContainer.getContainer('WebsocketContainer');
 
 // create unstated container instance
+const navigationContainer = new NavigationContainer(appContainer);
 const adminAppContainer = new AdminAppContainer(appContainer);
+const adminImportContainer = new AdminImportContainer(appContainer);
+const adminSocketIoContainer = new AdminSocketIoContainer(appContainer);
 const adminHomeContainer = new AdminHomeContainer(appContainer);
 const adminCustomizeContainer = new AdminCustomizeContainer(appContainer);
 const adminUsersContainer = new AdminUsersContainer(appContainer);
@@ -59,8 +67,10 @@ const adminMarkDownContainer = new AdminMarkDownContainer(appContainer);
 const adminUserGroupDetailContainer = new AdminUserGroupDetailContainer(appContainer);
 const injectableContainers = [
   appContainer,
-  websocketContainer,
+  navigationContainer,
   adminAppContainer,
+  adminImportContainer,
+  adminSocketIoContainer,
   adminHomeContainer,
   adminCustomizeContainer,
   adminUsersContainer,

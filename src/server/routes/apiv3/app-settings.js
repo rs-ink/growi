@@ -6,9 +6,11 @@ const debug = require('debug')('growi:routes:admin');
 
 const express = require('express');
 
+const { listLocaleIds } = require('@commons/util/locale-utils');
+
 const router = express.Router();
 
-const { body } = require('express-validator/check');
+const { body } = require('express-validator');
 const ErrorV3 = require('../../models/vo/error-apiv3');
 
 /**
@@ -48,13 +50,17 @@ const ErrorV3 = require('../../models/vo/error-apiv3');
  *          envSiteUrl:
  *            type: string
  *            description: environment variable 'APP_SITE_URL'
- *      MailSettingParams:
+ *      FromAddress:
  *        description: MailSettingParams
  *        type: object
  *        properties:
  *          fromAddress:
  *            type: string
  *            description: e-mail address used as from address of mail which sent from GROWI app
+ *      MailSettingParams:
+ *        description: MailSettingParams
+ *        type: object
+ *        properties:
  *          smtpHost:
  *            type: string
  *            description: host name of client's smtp server
@@ -96,33 +102,35 @@ const ErrorV3 = require('../../models/vo/error-apiv3');
  */
 
 module.exports = (crowi) => {
-  const accessTokenParser = require('../../middleware/access-token-parser')(crowi);
-  const loginRequired = require('../../middleware/login-required')(crowi);
-  const loginRequiredStrictly = require('../../middleware/login-required')(crowi);
-  const adminRequired = require('../../middleware/admin-required')(crowi);
-  const csrf = require('../../middleware/csrf')(crowi);
+  const accessTokenParser = require('../../middlewares/access-token-parser')(crowi);
+  const loginRequired = require('../../middlewares/login-required')(crowi);
+  const loginRequiredStrictly = require('../../middlewares/login-required')(crowi);
+  const adminRequired = require('../../middlewares/admin-required')(crowi);
+  const csrf = require('../../middlewares/csrf')(crowi);
+  const apiV3FormValidator = require('../../middlewares/apiv3-form-validator')(crowi);
 
-  const { ApiV3FormValidator } = crowi.middlewares;
   const validator = {
     appSetting: [
       body('title').trim(),
       body('confidential'),
-      body('globalLang').isIn(['en-US','ja','zh-CN']),
+      body('globalLang').isIn(listLocaleIds()),
       body('fileUpload').isBoolean(),
     ],
     siteUrlSetting: [
       body('siteUrl').trim().matches(/^(https?:\/\/[^/]+|)$/).isURL({ require_tld: false }),
     ],
+    fromAddress: [
+      body('fromAddress').trim().if(value => value !== '').isEmail(),
+    ],
     mailSetting: [
-      body('fromAddress').trim().isEmail(),
       body('smtpHost').trim(),
       body('smtpPort').trim().isPort(),
       body('smtpUser').trim(),
       body('smtpPassword').trim(),
     ],
     awsSetting: [
-      body('region').trim().matches(/^[a-z]+-[a-z]+-\d+$/).withMessage('リージョンには、AWSリージョン名を入力してください。 例: ap-northeast-1'),
-      body('customEndpoint').trim().matches(/^(https?:\/\/[^/]+|)$/).withMessage('カスタムエンドポイントは、http(s)://で始まるURLを指定してください。また、末尾の/は不要です。'),
+      body('region').trim().matches(/^[a-z]+-[a-z]+-\d+$/).withMessage((value, { req }) => req.t('validation.aws_region')),
+      body('customEndpoint').trim().matches(/^(https?:\/\/[^/]+|)$/).withMessage((value, { req }) => req.t('validation.aws_custom_endpoint')),
       body('bucket').trim(),
       body('accessKeyId').trim().matches(/^[\da-zA-Z]+$/),
       body('secretAccessKey').trim(),
@@ -152,7 +160,7 @@ module.exports = (crowi) => {
    *                      type: object
    *                      description: app settings params
    */
-  router.get('/', accessTokenParser, loginRequired, adminRequired, async (req, res) => {
+  router.get('/', accessTokenParser, loginRequired, adminRequired, async(req, res) => {
     const appSettingsParams = {
       title: crowi.configManager.getConfig('crowi', 'app:title'),
       confidential: crowi.configManager.getConfig('crowi', 'app:confidential'),
@@ -200,7 +208,7 @@ module.exports = (crowi) => {
    *                schema:
    *                  $ref: '#/components/schemas/AppSettingParams'
    */
-  router.put('/app-setting', loginRequiredStrictly, adminRequired, csrf, validator.appSetting, ApiV3FormValidator, async (req, res) => {
+  router.put('/app-setting', loginRequiredStrictly, adminRequired, csrf, validator.appSetting, apiV3FormValidator, async(req, res) => {
     const requestAppSettingParams = {
       'app:title': req.body.title,
       'app:confidential': req.body.confidential,
@@ -217,7 +225,8 @@ module.exports = (crowi) => {
         fileUpload: crowi.configManager.getConfig('crowi', 'app:fileUpload'),
       };
       return res.apiv3({ appSettingParams });
-    } catch (err) {
+    }
+    catch (err) {
       const msg = 'Error occurred in updating app setting';
       logger.error('Error', err);
       return res.apiv3Err(new ErrorV3(msg, 'update-appSetting-failed'));
@@ -248,7 +257,7 @@ module.exports = (crowi) => {
    *                schema:
    *                  $ref: '#/components/schemas/SiteUrlSettingParams'
    */
-  router.put('/site-url-setting', loginRequiredStrictly, adminRequired, csrf, validator.siteUrlSetting, ApiV3FormValidator, async (req, res) => {
+  router.put('/site-url-setting', loginRequiredStrictly, adminRequired, csrf, validator.siteUrlSetting, apiV3FormValidator, async(req, res) => {
 
     const requestSiteUrlSettingParams = {
       'app:siteUrl': req.body.siteUrl,
@@ -260,7 +269,8 @@ module.exports = (crowi) => {
         siteUrl: crowi.configManager.getConfig('crowi', 'app:siteUrl'),
       };
       return res.apiv3({ siteUrlSettingParams });
-    } catch (err) {
+    }
+    catch (err) {
       const msg = 'Error occurred in updating site url setting';
       logger.error('Error', err);
       return res.apiv3Err(new ErrorV3(msg, 'update-siteUrlSetting-failed'));
@@ -276,7 +286,8 @@ module.exports = (crowi) => {
       smtpClient.sendMail(options, (err, res) => {
         if (err) {
           reject(err);
-        } else {
+        }
+        else {
           resolve(res);
         }
       });
@@ -287,7 +298,12 @@ module.exports = (crowi) => {
    * validate mail setting send test mail
    */
   async function validateMailSetting(req) {
-    const mailer = crowi.mailer;
+    const { configManager, mailService } = crowi;
+    const fromAddress = configManager.getConfig('crowi', 'mail:from');
+    if (fromAddress == null) {
+      throw Error('fromAddress is not setup');
+    }
+
     const option = {
       host: req.body.smtpHost,
       port: req.body.smtpPort,
@@ -302,11 +318,11 @@ module.exports = (crowi) => {
       option.secure = true;
     }
 
-    const smtpClient = mailer.createSMTPClient(option);
+    const smtpClient = mailService.createSMTPClient(option);
     debug('mailer setup for validate SMTP setting', smtpClient);
 
     const mailOptions = {
-      from: req.body.fromAddress,
+      from: fromAddress,
       to: req.user.email,
       subject: 'Wiki管理設定のアップデートによるメール通知',
       text: 'このメールは、WikiのSMTP設定のアップデートにより送信されています。',
@@ -315,6 +331,64 @@ module.exports = (crowi) => {
     await sendMailPromiseWrapper(smtpClient, mailOptions);
   }
 
+  const updateMailSettinConfig = async function(requestMailSettingParams) {
+    const {
+      configManager,
+      mailService,
+    } = crowi;
+
+    // update config without publishing S2sMessage
+    await configManager.updateConfigsInTheSameNamespace('crowi', requestMailSettingParams, true);
+
+    await mailService.initialize();
+    mailService.publishUpdatedMessage();
+
+    return {
+      smtpHost: configManager.getConfig('crowi', 'mail:smtpHost'),
+      smtpPort: configManager.getConfig('crowi', 'mail:smtpPort'),
+      smtpUser: configManager.getConfig('crowi', 'mail:smtpUser'),
+      smtpPassword: configManager.getConfig('crowi', 'mail:smtpPassword'),
+    };
+  };
+
+  /**
+   * @swagger
+   *
+   *    /app-settings/from-address:
+   *      put:
+   *        tags: [AppSettings]
+   *        operationId: updateAppSettingFromAddress
+   *        summary: /app-settings/from-address
+   *        description: Update from address
+   *        requestBody:
+   *          required: true
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: '#/components/schemas/FromAddress'
+   *        responses:
+   *          200:
+   *            description: Succeeded to update from adress
+   *            content:
+   *              application/json:
+   *                schema:
+   *                  $ref: '#/components/schemas/FromAddress'
+   */
+  router.put('/from-address', loginRequiredStrictly, adminRequired, csrf, validator.fromAddress, apiV3FormValidator, async(req, res) => {
+
+    try {
+      const mailSettingParams = await updateMailSettinConfig({ 'mail:from': req.body.fromAddress });
+
+      return res.apiv3({ mailSettingParams });
+    }
+    catch (err) {
+      const msg = 'Error occurred in updating from adress';
+      logger.error('Error', err);
+      return res.apiv3Err(new ErrorV3(msg, 'update-from-adress-failed'));
+    }
+
+  });
+
   /**
    * @swagger
    *
@@ -322,7 +396,7 @@ module.exports = (crowi) => {
    *      put:
    *        tags: [AppSettings]
    *        operationId: updateAppSettingMailSetting
-   *        summary: /app-settings/site-url-setting
+   *        summary: /app-settings/mail-setting
    *        description: Update mail setting
    *        requestBody:
    *          required: true
@@ -338,11 +412,11 @@ module.exports = (crowi) => {
    *                schema:
    *                  $ref: '#/components/schemas/MailSettingParams'
    */
-  router.put('/mail-setting', loginRequiredStrictly, adminRequired, csrf, validator.mailSetting, ApiV3FormValidator, async (req, res) => {
-    // テストメール送信によるバリデート
+  router.put('/mail-setting', loginRequiredStrictly, adminRequired, csrf, validator.mailSetting, apiV3FormValidator, async(req, res) => {
     try {
       await validateMailSetting(req);
-    } catch (err) {
+    }
+    catch (err) {
       const msg = 'SMTPを利用したテストメール送信に失敗しました。設定をみなおしてください。';
       logger.error('Error', err);
       debug('Error validate mail setting: ', err);
@@ -351,7 +425,6 @@ module.exports = (crowi) => {
 
 
     const requestMailSettingParams = {
-      'mail:from': req.body.fromAddress,
       'mail:smtpHost': req.body.smtpHost,
       'mail:smtpPort': req.body.smtpPort,
       'mail:smtpUser': req.body.smtpUser,
@@ -359,19 +432,54 @@ module.exports = (crowi) => {
     };
 
     try {
-      await crowi.configManager.updateConfigsInTheSameNamespace('crowi', requestMailSettingParams);
-      const mailSettingParams = {
-        fromAddress: crowi.configManager.getConfig('crowi', 'mail:from'),
-        smtpHost: crowi.configManager.getConfig('crowi', 'mail:smtpHost'),
-        smtpPort: crowi.configManager.getConfig('crowi', 'mail:smtpPort'),
-        smtpUser: crowi.configManager.getConfig('crowi', 'mail:smtpUser'),
-        smtpPassword: crowi.configManager.getConfig('crowi', 'mail:smtpPassword'),
-      };
+      const mailSettingParams = await updateMailSettinConfig(requestMailSettingParams);
       return res.apiv3({ mailSettingParams });
-    } catch (err) {
+    }
+    catch (err) {
       const msg = 'Error occurred in updating mail setting';
       logger.error('Error', err);
       return res.apiv3Err(new ErrorV3(msg, 'update-mailSetting-failed'));
+    }
+  });
+
+  /**
+   * @swagger
+   *
+   *    /app-settings/mail-setting:
+   *      delete:
+   *        tags: [AppSettings]
+   *        operationId: deleteAppSettingMailSetting
+   *        summary: /app-settings/mail-setting
+   *        description: delete mail setting
+   *        requestBody:
+   *          required: true
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: '#/components/schemas/MailSettingParams'
+   *        responses:
+   *          200:
+   *            description: Succeeded to delete mail setting
+   *            content:
+   *              application/json:
+   *                schema:
+   *                  $ref: '#/components/schemas/MailSettingParams'
+   */
+  router.delete('/mail-setting', loginRequiredStrictly, adminRequired, csrf, async(req, res) => {
+    const requestMailSettingParams = {
+      'mail:smtpHost': null,
+      'mail:smtpPort': null,
+      'mail:smtpUser': null,
+      'mail:smtpPassword': null,
+    };
+    try {
+      const mailSettingParams = await updateMailSettinConfig(requestMailSettingParams);
+      return res.apiv3({ mailSettingParams });
+    }
+    catch (err) {
+      const msg = 'Error occurred in initializing mail setting';
+      logger.error('Error', err);
+      return res.apiv3Err(new ErrorV3(msg, 'initialize-mailSetting-failed'));
     }
   });
 
@@ -398,7 +506,7 @@ module.exports = (crowi) => {
    *                schema:
    *                  $ref: '#/components/schemas/AwsSettingParams'
    */
-  router.put('/aws-setting', loginRequiredStrictly, adminRequired, csrf, validator.awsSetting, ApiV3FormValidator, async (req, res) => {
+  router.put('/aws-setting', loginRequiredStrictly, adminRequired, csrf, validator.awsSetting, apiV3FormValidator, async(req, res) => {
     const requestAwsSettingParams = {
       'aws:region': req.body.region,
       'aws:customEndpoint': req.body.customEndpoint,
@@ -408,7 +516,14 @@ module.exports = (crowi) => {
     };
 
     try {
-      await crowi.configManager.updateConfigsInTheSameNamespace('crowi', requestAwsSettingParams);
+      const { configManager, mailService } = crowi;
+
+      // update config without publishing S2sMessage
+      await configManager.updateConfigsInTheSameNamespace('crowi', requestAwsSettingParams, true);
+
+      await mailService.initialize();
+      mailService.publishUpdatedMessage();
+
       const awsSettingParams = {
         region: crowi.configManager.getConfig('crowi', 'aws:region'),
         customEndpoint: crowi.configManager.getConfig('crowi', 'aws:customEndpoint'),
@@ -417,7 +532,8 @@ module.exports = (crowi) => {
         secretAccessKey: crowi.configManager.getConfig('crowi', 'aws:secretAccessKey'),
       };
       return res.apiv3({ awsSettingParams });
-    } catch (err) {
+    }
+    catch (err) {
       const msg = 'Error occurred in updating aws setting';
       logger.error('Error', err);
       return res.apiv3Err(new ErrorV3(msg, 'update-awsSetting-failed'));
@@ -448,7 +564,7 @@ module.exports = (crowi) => {
    *                schema:
    *                  $ref: '#/components/schemas/PluginSettingParams'
    */
-  router.put('/plugin-setting', loginRequiredStrictly, adminRequired, csrf, validator.pluginSetting, ApiV3FormValidator, async (req, res) => {
+  router.put('/plugin-setting', loginRequiredStrictly, adminRequired, csrf, validator.pluginSetting, apiV3FormValidator, async(req, res) => {
     const requestPluginSettingParams = {
       'plugin:isEnabledPlugins': req.body.isEnabledPlugins,
     };
@@ -459,7 +575,8 @@ module.exports = (crowi) => {
         isEnabledPlugins: crowi.configManager.getConfig('crowi', 'plugin:isEnabledPlugins'),
       };
       return res.apiv3({ pluginSettingParams });
-    } catch (err) {
+    }
+    catch (err) {
       const msg = 'Error occurred in updating plugin setting';
       logger.error('Error', err);
       return res.apiv3Err(new ErrorV3(msg, 'update-pluginSetting-failed'));

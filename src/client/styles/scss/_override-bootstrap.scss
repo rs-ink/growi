@@ -79,13 +79,20 @@
   // Dropdowns
   .dropdown-toggle {
     &.btn.disabled {
+      pointer-events: auto;
       cursor: not-allowed;
+      opacity: unset;
     }
 
     // hide caret
     &.dropdown-toggle-no-caret::after {
       content: none;
     }
+  }
+
+  // Badges
+  .badge {
+    @extend .badge-pill;
   }
 
   //Modals
