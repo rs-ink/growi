@@ -332,10 +332,14 @@ module.exports = function(crowi, app) {
 
   async function showPageForGrowiBehavior(req, res, next) {
     const path = getPathFromRequest(req);
+    console.log('path:==>>', path);
+    console.log('query:==>>', req.query);
+
     const revisionId = req.query.revision;
     const layoutName = configManager.getConfig('crowi', 'customize:layout');
-
+    console.log('layoutName:==>>', layoutName);
     let page = await Page.findByPathAndViewer(path, req.user);
+    console.log('page:==>', page);
 
     if (page == null) {
       // check the page is forbidden or just does not exist.
@@ -354,7 +358,9 @@ module.exports = function(crowi, app) {
     const renderVars = {};
 
     let view = `layout-${layoutName}/page`;
-
+    if (req.query.single) {
+      view = `layout-${layoutName}/page_single`;
+    }
     page.initLatestRevisionField(revisionId);
 
     // populate
@@ -367,7 +373,7 @@ module.exports = function(crowi, app) {
 
     const sharelinksNumber = await ShareLink.countDocuments({ relatedPage: page._id });
     renderVars.sharelinksNumber = sharelinksNumber;
-
+    renderVars.single = req.query.single;
     if (isUserPage(page.path)) {
       // change template
       view = `layout-${layoutName}/user_page`;
@@ -375,16 +381,19 @@ module.exports = function(crowi, app) {
     }
 
     await interceptorManager.process('beforeRenderPage', req, res, renderVars);
+    console.log('renderVars:==>>', renderVars);
     return res.render(view, renderVars);
   }
 
-  const getSlackChannels = async(page) => {
+  const getSlackChannels = async (page) => {
     if (page.extended.slack) {
       return page.extended.slack;
     }
 
     const data = await UpdatePost.findSettingsByPath(page.path);
-    const channels = data.map((e) => { return e.channel }).join(', ');
+    const channels = data.map((e) => {
+      return e.channel;
+    }).join(', ');
     return channels;
   };
 
@@ -500,11 +509,9 @@ module.exports = function(crowi, app) {
 
     if (!isCreatable) {
       view = `layout-${layoutName}/not_creatable`;
-    }
-    else if (req.isForbidden) {
+    } else if (req.isForbidden) {
       view = `layout-${layoutName}/forbidden`;
-    }
-    else {
+    } else {
       view = `layout-${layoutName}/not_found`;
 
       // retrieve templates
@@ -660,8 +667,7 @@ module.exports = function(crowi, app) {
           throw new Error('The user not found.');
         }
         result = await Page.findListByCreator(user, req.user, queryOptions);
-      }
-      else {
+      } else {
         result = await Page.findListByStartWith(path, req.user, queryOptions);
       }
 
@@ -670,8 +676,7 @@ module.exports = function(crowi, app) {
       }
 
       return res.json(ApiResponse.success(result));
-    }
-    catch (err) {
+    } catch (err) {
       return res.json(ApiResponse.error(err));
     }
   };
@@ -774,8 +779,7 @@ module.exports = function(crowi, app) {
     // global notification
     try {
       await globalNotificationService.fire(GlobalNotificationSetting.EVENT.PAGE_CREATE, createdPage, req.user);
-    }
-    catch (err) {
+    } catch (err) {
       logger.error('Create notification failed', err);
     }
 
@@ -880,8 +884,7 @@ module.exports = function(crowi, app) {
     const previousRevision = await Revision.findById(revisionId);
     try {
       page = await Page.updatePage(page, pageBody, previousRevision.body, req.user, options);
-    }
-    catch (err) {
+    } catch (err) {
       logger.error('error on _api/pages.update', err);
       return res.json(ApiResponse.error(err));
     }
@@ -903,8 +906,7 @@ module.exports = function(crowi, app) {
     // global notification
     try {
       await globalNotificationService.fire(GlobalNotificationSetting.EVENT.PAGE_EDIT, page, req.user);
-    }
-    catch (err) {
+    } catch (err) {
       logger.error('Edit notification failed', err);
     }
 
@@ -973,8 +975,7 @@ module.exports = function(crowi, app) {
     try {
       if (pageId) { // prioritized
         page = await Page.findByIdAndViewer(pageId, req.user);
-      }
-      else if (pagePath) {
+      } else if (pagePath) {
         page = await Page.findByPathAndViewer(pagePath, req.user);
       }
 
@@ -986,8 +987,7 @@ module.exports = function(crowi, app) {
 
       // populate
       page = await page.populateDataToShowRevision();
-    }
-    catch (err) {
+    } catch (err) {
       return res.json(ApiResponse.error(err));
     }
 
@@ -1042,11 +1042,11 @@ module.exports = function(crowi, app) {
     const pagePaths = JSON.parse(req.query.pagePaths || '[]');
 
     const pages = {};
-    await Promise.all(pagePaths.map(async(path) => {
+    await Promise.all(pagePaths.map(async (path) => {
       // check page existence
       const isExist = await Page.count({ path }) > 0;
       pages[path] = isExist;
-      return;
+
     }));
 
     const result = { pages };
@@ -1095,8 +1095,7 @@ module.exports = function(crowi, app) {
     const result = {};
     try {
       result.tags = await PageTagRelation.listTagNamesByPage(req.query.pageId);
-    }
-    catch (err) {
+    } catch (err) {
       return res.json(ApiResponse.error(err));
     }
     return res.json(ApiResponse.success(result));
@@ -1159,8 +1158,7 @@ module.exports = function(crowi, app) {
       if (user != null) {
         page = await page.seen(user);
       }
-    }
-    catch (err) {
+    } catch (err) {
       debug('Seen user update error', err);
       return res.json(ApiResponse.error(err));
     }
@@ -1267,25 +1265,21 @@ module.exports = function(crowi, app) {
         }
         if (isRecursively) {
           await Page.completelyDeletePageRecursively(page, req.user, options);
-        }
-        else {
+        } else {
           await Page.completelyDeletePage(page, req.user, options);
         }
-      }
-      else {
+      } else {
         if (!page.isUpdatable(previousRevision)) {
           return res.json(ApiResponse.error('Someone could update this page, so couldn\'t delete.', 'outdated'));
         }
 
         if (isRecursively) {
           await Page.deletePageRecursively(page, req.user, options);
-        }
-        else {
+        } else {
           await Page.deletePage(page, req.user, options);
         }
       }
-    }
-    catch (err) {
+    } catch (err) {
       logger.error('Error occured while get setting', err);
       return res.json(ApiResponse.error('Failed to delete page.', err.message));
     }
@@ -1299,8 +1293,7 @@ module.exports = function(crowi, app) {
     try {
       // global notification
       await globalNotificationService.fire(GlobalNotificationSetting.EVENT.PAGE_DELETE, page, req.user);
-    }
-    catch (err) {
+    } catch (err) {
       logger.error('Delete notification failed', err);
     }
   };
@@ -1328,12 +1321,10 @@ module.exports = function(crowi, app) {
 
       if (isRecursively) {
         page = await Page.revertDeletedPageRecursively(page, req.user, { socketClientId });
-      }
-      else {
+      } else {
         page = await Page.revertDeletedPage(page, req.user, { socketClientId });
       }
-    }
-    catch (err) {
+    } catch (err) {
       logger.error('Error occured while get setting', err);
       return res.json(ApiResponse.error('Failed to revert deleted page.'));
     }
@@ -1439,12 +1430,10 @@ module.exports = function(crowi, app) {
 
       if (isRecursively) {
         page = await Page.renameRecursively(page, newPagePath, req.user, options);
-      }
-      else {
+      } else {
         page = await Page.rename(page, newPagePath, req.user, options);
       }
-    }
-    catch (err) {
+    } catch (err) {
       logger.error(err);
       return res.json(ApiResponse.error('Failed to update page.', 'unknown'));
     }
@@ -1459,8 +1448,7 @@ module.exports = function(crowi, app) {
       await globalNotificationService.fire(GlobalNotificationSetting.EVENT.PAGE_MOVE, page, req.user, {
         oldPath: req.body.path,
       });
-    }
-    catch (err) {
+    } catch (err) {
       logger.error('Move notification failed', err);
     }
 
@@ -1553,8 +1541,7 @@ module.exports = function(crowi, app) {
     try {
       await Page.removeRedirectOriginPageByPath(path);
       logger.debug('Redirect Page deleted', path);
-    }
-    catch (err) {
+    } catch (err) {
       logger.error('Error occured while get setting', err);
       return res.json(ApiResponse.error('Failed to delete redirect page.'));
     }
@@ -1634,8 +1621,7 @@ module.exports = function(crowi, app) {
       const result = await Page.findListByCreator(page.creator, req.user, queryOptions);
 
       return res.json(ApiResponse.success(result));
-    }
-    catch (err) {
+    } catch (err) {
       return res.json(ApiResponse.error(err));
     }
   };

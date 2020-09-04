@@ -11,13 +11,13 @@ class InstallerForm extends React.Component {
 
     this.state = {
       isValidUserName: true,
-      checkedBtn: 'zh-CN',
+      checkedBtn: 'zh_CN',
     };
     this.checkUserName = this.checkUserName.bind(this);
   }
 
   componentWillMount() {
-    this.changeLanguage('zh-CN');
+    this.changeLanguage('zh_CN');
   }
 
   checkUserName(event) {
@@ -64,10 +64,10 @@ class InstallerForm extends React.Component {
                   className="custom-control-input"
                   id="register-form-check-cn"
                   name="registerForm[app:globalLang]"
-                  value="zh-CN"
-                  checked={checkedBtn === 'zh-CN'}
+                  value="zh_CN"
+                  checked={checkedBtn === 'zh_CN'}
                   inline
-                  onChange={(e) => { if (e.target.checked) { this.changeLanguage('zh-CN') } }}
+                  onChange={(e) => { if (e.target.checked) { this.changeLanguage('zh_CN') } }}
                 />
                 <label className="custom-control-label" htmlFor="register-form-check-cn">
                   简体中文
