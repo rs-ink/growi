@@ -39,6 +39,9 @@ export default class AppContainer extends Container {
 
     this.config = JSON.parse(document.getElementById('growi-context-hydrate').textContent || '{}');
 
+    const isSharedPageElem = document.getElementById('is-shared-page');
+    this.isSharedUser = (isSharedPageElem != null);
+
     const userAgent = window.navigator.userAgent.toLowerCase();
     this.isMobile = /iphone|ipad|android/.test(userAgent);
 
@@ -368,7 +371,6 @@ export default class AppContainer extends Container {
     if (!params._csrf) {
       params._csrf = this.csrfToken;
     }
-
     return this.apiv3Request('delete', path, { params });
   }
 

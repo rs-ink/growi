@@ -56,7 +56,7 @@ class SidebarNav extends React.Component {
   }
 
   render() {
-    const { isAdmin, currentUsername } = this.props.appContainer;
+    const { isAdmin, currentUsername, isSharedUser } = this.props.appContainer;
     const isLoggedIn = currentUsername != null;
 
     const { PrimaryItem, SecondaryItem } = this;
@@ -64,15 +64,15 @@ class SidebarNav extends React.Component {
     return (
       <div className="grw-sidebar-nav">
         <div className="grw-sidebar-nav-primary-container">
-          {/*<PrimaryItem id="custom" label="Custom Sidebar" iconName="code" />*/}
-          <PrimaryItem id="recent" label="Recent Changes" iconName="update" />
+          {!isSharedUser && <PrimaryItem id="custom" label="Custom Sidebar" iconName="code" />}
+          {!isSharedUser && <PrimaryItem id="recent" label="Recent Changes" iconName="update" />}
           {/* <PrimaryItem id="tag" label="Tags" iconName="icon-tag" /> */}
           {/* <PrimaryItem id="favorite" label="Favorite" iconName="icon-star" /> */}
         </div>
         <div className="grw-sidebar-nav-secondary-container">
           {isAdmin && <SecondaryItem label="Admin" iconName="settings" href="/admin" />}
           {isLoggedIn && <SecondaryItem label="Draft" iconName="file_copy" href={`/user/${currentUsername}#user-draft-list`} />}
-          {/*<SecondaryItem label="Help" iconName="help" href="https://docs.growi.org" isBlank />*/}
+          <SecondaryItem label="Help" iconName="help" href="https://docs.growi.org" isBlank />
           {isLoggedIn && <SecondaryItem label="Trash" iconName="delete" href="/trash" />}
         </div>
       </div>

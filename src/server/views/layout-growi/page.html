@@ -28,15 +28,14 @@
   </div>
 {% endblock %}
 
-
-{% block content_main_after %}
-  {% include 'widget/comments.html' %}
-
-  {% if page %}
-    {% include '../widget/page_attachments.html' %}
-  {% endif %}
-{% endblock %}
-
+{% if single !=1 %}
+  {% block content_main_after %}
+      {% include 'widget/comments.html' %}
+    {% if page %}
+      {% include '../widget/page_attachments.html' %}
+    {% endif %}
+  {% endblock %}
+{% endif %}
 
 {% block body_end %}
   <div id="presentation-layer" class="fullscreen-layer">

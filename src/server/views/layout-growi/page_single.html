@@ -1,0 +1,49 @@
+{% extends 'base/layout.html' %}
+
+
+{% block content_main_before %}
+{% endblock %}
+
+
+{% block content_main %}
+<div class="row">
+
+  <div class="col grw-page-content-container">
+
+    {% include '../widget/page_content.html' %}
+
+    {% if single != 1%}
+      <div class="page-list d-edit-none d-print-none mt-5">
+        {% include '../widget/page_list_and_timeline.html' %}
+      </div>
+    {% endif %}
+  </div>
+  {% if single != 1%}
+  <div class="col-xl-2 col-lg-3 d-none d-lg-block revision-toc-container">
+    {% include './widget/liker-and-seenusers.html' %}
+    <div id="revision-toc" class="revision-toc mt-3 sps sps--abv" data-sps-offset="123">
+      <div id="revision-toc-content" class="revision-toc-content"></div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+
+{% block content_main_after %}
+  {% if single !=1 %}
+    {% include 'widget/comments.html' %}
+  {% endif %}
+
+{% if page %}
+{% include '../widget/page_attachments.html' %}
+{% endif %}
+{% endblock %}
+
+
+{% block body_end %}
+<div id="presentation-layer" class="fullscreen-layer">
+  <div id="presentation-container"></div>
+</div>
+{% endblock %}

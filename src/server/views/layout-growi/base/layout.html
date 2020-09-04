@@ -10,9 +10,11 @@
 
 {% block content_header_wrapper %}
 <header class="py-0">
-  {% block content_header %}
-    <div id="grw-subnav-container" class="d-edit-none"></div>
-  {% endblock %}
+  {% if single !=  1%}
+    {% block content_header %}
+      <div id="grw-subnav-container" class="d-edit-none"></div>
+    {% endblock %}
+  {% endif %}
 </header>
 <div id="grw-subnav-switcher-container" class="d-edit-none"></div>
 <div id="grw-subnav-sticky-trigger" class="sticky-top"></div>

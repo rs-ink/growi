@@ -17,9 +17,9 @@ const BULK_REINDEX_SIZE = 100;
 
 class ElasticsearchDelegator {
 
-  constructor(configManager, searchEvent) {
+  constructor(configManager, socketIoService) {
     this.configManager = configManager;
-    this.searchEvent = searchEvent;
+    this.socketIoService = socketIoService;
 
     this.client = null;
 
@@ -159,12 +159,8 @@ class ElasticsearchDelegator {
 
     // create indices name list
     const existingIndices = [];
-    if (isExistsMainIndex) {
-      existingIndices.push(indexName);
-    }
-    if (isExistsTmpIndex) {
-      existingIndices.push(tmpIndexName);
-    }
+    if (isExistsMainIndex) { existingIndices.push(indexName) }
+    if (isExistsTmpIndex) { existingIndices.push(tmpIndexName) }
 
     // results when there is no indices
     if (existingIndices.length === 0) {
@@ -175,11 +171,7 @@ class ElasticsearchDelegator {
       };
     }
 
-    const { indices } = await client.indices.stats({
-      index: existingIndices,
-      ignore_unavailable: true,
-      metric: ['docs', 'store', 'indexing'],
-    });
+    const { indices } = await client.indices.stats({ index: existingIndices, ignore_unavailable: true, metric: ['docs', 'store', 'indexing'] });
     const aliases = await client.indices.getAlias({ index: existingIndices });
 
     const isMainIndexHasAlias = isExistsMainIndex && aliases[indexName].aliases != null && aliases[indexName].aliases[aliasName] != null;
@@ -229,14 +221,16 @@ class ElasticsearchDelegator {
       });
       await this.createIndex(indexName);
       await this.addAllPages();
-    } catch (error) {
+    }
+    catch (error) {
       logger.warn('An error occured while \'rebuildIndex\', normalize indices anyway.');
 
-      const { searchEvent } = this;
-      searchEvent.emit('rebuildingFailed', error);
+      const socket = this.socketIoService.getAdminSocket();
+      socket.emit('rebuildingFailed', { error: error.message });
 
       throw error;
-    } finally {
+    }
+    finally {
       await this.normalizeIndices();
     }
 
@@ -366,7 +360,7 @@ class ElasticsearchDelegator {
     const Bookmark = mongoose.model('Bookmark');
     const PageTagRelation = mongoose.model('PageTagRelation');
 
-    const { searchEvent } = this;
+    const socket = this.socketIoService.getAdminSocket();
 
     // prepare functions invoked from custom streams
     const prepareBodyForCreate = this.prepareBodyForCreate.bind(this);
@@ -384,7 +378,6 @@ class ElasticsearchDelegator {
         { path: 'creator', model: 'User', select: 'username' },
         { path: 'revision', model: 'Revision', select: 'body' },
       ])
-      // .snapshot()
       .lean()
       .cursor();
 
@@ -394,7 +387,8 @@ class ElasticsearchDelegator {
       async transform(doc, encoding, callback) {
         if (shouldIndexed(doc)) {
           this.push(doc);
-        } else {
+        }
+        else {
           skipped++;
         }
         callback();
@@ -463,9 +457,10 @@ class ElasticsearchDelegator {
           logger.info(`Adding pages progressing: (count=${count}, errors=${res.errors}, took=${res.took}ms)`);
 
           if (isEmittingProgressEvent) {
-            searchEvent.emit('addPageProgress', totalCount, count, skipped);
+            socket.emit('addPageProgress', { totalCount, count, skipped });
           }
-        } catch (err) {
+        }
+        catch (err) {
           logger.error('addAllPages error on add anyway: ', err);
         }
 
@@ -475,7 +470,7 @@ class ElasticsearchDelegator {
         logger.info(`Adding pages has completed: (totalCount=${totalCount}, skipped=${skipped})`);
 
         if (isEmittingProgressEvent) {
-          searchEvent.emit('finishAddPage', totalCount, count, skipped);
+          socket.emit('finishAddPage', { totalCount, count, skipped });
         }
         callback();
       },
@@ -498,7 +493,7 @@ class ElasticsearchDelegator {
 
     pages.map((page) => {
       self.prepareBodyForDelete(body, page);
-
+      return;
     });
 
     logger.debug('deletePages(): Sending Request to ES', body);
@@ -597,9 +592,7 @@ class ElasticsearchDelegator {
       query.body.query.bool = {};
     }
 
-    const isInitialized = (query) => {
-      return !!query && Array.isArray(query);
-    };
+    const isInitialized = (query) => { return !!query && Array.isArray(query) };
 
     if (!isInitialized(query.body.query.bool.filter)) {
       query.body.query.bool.filter = [];
@@ -613,7 +606,7 @@ class ElasticsearchDelegator {
     return query;
   }
 
-  appendCriteriaForQueryString(query, queryString, precise) {
+  appendCriteriaForQueryString(query, queryString) {
     query = this.initializeBoolQuery(query); // eslint-disable-line no-param-reassign
 
     // parse
@@ -742,7 +735,8 @@ class ElasticsearchDelegator {
         { term: { grant: GRANT_SPECIFIED } },
         { term: { grant: GRANT_OWNER } },
       );
-    } else if (user != null) {
+    }
+    else if (user != null) {
       grantConditions.push(
         {
           bool: {
@@ -767,10 +761,9 @@ class ElasticsearchDelegator {
       grantConditions.push(
         { term: { grant: GRANT_USER_GROUP } },
       );
-    } else if (userGroups != null && userGroups.length > 0) {
-      const userGroupIds = userGroups.map((group) => {
-        return group._id.toString();
-      });
+    }
+    else if (userGroups != null && userGroups.length > 0) {
+      const userGroupIds = userGroups.map((group) => { return group._id.toString() });
       grantConditions.push(
         {
           bool: {
@@ -849,9 +842,8 @@ class ElasticsearchDelegator {
     const from = option.offset || null;
     const size = option.limit || null;
     const type = option.type || null;
-    const precise = option.precise || false;
     const query = this.createSearchQuerySortedByScore();
-    this.appendCriteriaForQueryString(query, queryString, precise);
+    this.appendCriteriaForQueryString(query, queryString);
 
     this.filterPagesByType(query, type);
     await this.filterPagesByViewer(query, user, userGroups);
@@ -859,7 +851,7 @@ class ElasticsearchDelegator {
     this.appendResultSize(query, from, size);
 
     this.appendFunctionScore(query, queryString);
-    console.log('elasticsearch query string::', queryString, '::', JSON.stringify(query));
+
     return this.search(query);
   }
 
@@ -887,7 +879,8 @@ class ElasticsearchDelegator {
         phrase.trim();
         if (phrase.match(/^-/)) {
           notPhraseWords.push(phrase.replace(/^-/, ''));
-        } else {
+        }
+        else {
           phraseWords.push(phrase);
         }
       });
@@ -907,17 +900,22 @@ class ElasticsearchDelegator {
       if (matchNegative != null) {
         if (matchNegative[1] === 'prefix:') {
           notPrefixPaths.push(matchNegative[2]);
-        } else if (matchNegative[1] === 'tag:') {
+        }
+        else if (matchNegative[1] === 'tag:') {
           notTags.push(matchNegative[2]);
-        } else {
+        }
+        else {
           notMatchWords.push(matchNegative[2]);
         }
-      } else if (matchPositive != null) {
+      }
+      else if (matchPositive != null) {
         if (matchPositive[1] === 'prefix:') {
           prefixPaths.push(matchPositive[2]);
-        } else if (matchPositive[1] === 'tag:') {
+        }
+        else if (matchPositive[1] === 'tag:') {
           tags.push(matchPositive[2]);
-        } else {
+        }
+        else {
           matchWords.push(matchPositive[2]);
         }
       }
@@ -942,7 +940,8 @@ class ElasticsearchDelegator {
     if (!this.shouldIndexed(page)) {
       try {
         await this.deletePages([page]);
-      } catch (err) {
+      }
+      catch (err) {
         logger.error('deletePages:ES Error', err);
       }
       return;
@@ -956,7 +955,8 @@ class ElasticsearchDelegator {
 
     try {
       return await this.deletePages([page]);
-    } catch (err) {
+    }
+    catch (err) {
       logger.error('deletePages:ES Error', err);
     }
   }
