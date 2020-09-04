@@ -37,7 +37,7 @@ module.exports = function(crowi, app) {
     .use(i18nSprintf)
     .init({
       // debug: true,
-      fallbackLng: ['en_US'],
+      fallbackLng: ['zh_CN'],
       whitelist: listLocaleIds(),
       backend: {
         loadPath: `${crowi.localeDir}{{lng}}/translation.json`,

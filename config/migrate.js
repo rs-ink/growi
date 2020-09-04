@@ -22,7 +22,7 @@ const mongodb = {
   options: {
     useNewUrlParser: true, // removes a deprecation warning when connecting
     useUnifiedTopology: true,
-    useFindAndModify: false,
+    // useFindAndModify: true,
   },
 };
 

@@ -89,6 +89,7 @@ class MarkdownTableUtil {
    */
   getMarkdownTable(editor) {
     if (!this.isInTable(editor)) {
+      console.log("------------->>>>>>>>>>>>showHandsonTableHandler")
       return null;
     }
 

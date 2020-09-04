@@ -62,12 +62,12 @@ module.exports = function(crowi) {
     if (!req.form.isValid) {
       return res.render('installer');
     }
-
+    logger.info('registerForm:', registerForm);
     const name = registerForm.name;
     const username = registerForm.username;
     const email = registerForm.email;
     const password = registerForm.password;
-    const language = registerForm['app:globalLang'] || 'en_US';
+    const language = registerForm['app:globalLang'] || 'zh_CN';
 
     await appService.initDB(language);
 

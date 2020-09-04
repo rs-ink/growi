@@ -15,8 +15,8 @@ module.exports = function(crowi) {
       type: String,
       required: true,
       get: (data) => {
-      // replace CR/CRLF to LF above v3.1.5
-      // see https://github.com/weseek/growi/issues/463
+        // replace CR/CRLF to LF above v3.1.5
+        // see https://github.com/weseek/growi/issues/463
         return data ? data.replace(/\r\n?/g, '\n') : '';
       },
     },
@@ -48,23 +48,24 @@ module.exports = function(crowi) {
     if (!Array.isArray(ids)) {
       return Promise.reject(new Error('The argument was not Array.'));
     }
-
+    console.log(ids);
     return new Promise(((resolve, reject) => {
       Revision
-        .find({ _id: { $in: ids } })
+        .find({ _id: { $in: ids }})
         .sort({ createdAt: -1 })
         .populate('author', User.USER_PUBLIC_FIELDS)
         .exec((err, revisions) => {
           if (err) {
             return reject(err);
           }
-
+          console.log('revisions:', revisions);
           return resolve(revisions);
         });
     }));
   };
 
   revisionSchema.statics.findRevisionIdList = function(path) {
+
     return this.find({ path })
       .select('_id author createdAt hasDiffToPrev')
       .sort({ createdAt: -1 })
@@ -76,7 +77,7 @@ module.exports = function(crowi) {
 
 
     const User = crowi.model('User');
-
+    console.log("findRevisionIdList:",path)
     return new Promise(((resolve, reject) => {
       Revision.find({ path })
         .sort({ createdAt: -1 })

@@ -7,7 +7,7 @@ import locales from '@root/resource/locales';
 // extract metadata list from 'resource/locales/${locale}/meta.json'
 export const localeMetadatas = Object.values(locales).map(locale => locale.meta);
 
-export const i18nFactory = (userLocaleId = 'en_US') => {
+export const i18nFactory = (userLocaleId = 'zh_CN') => {
   // setup LanguageDetector
   const langDetector = new LanguageDetector();
   langDetector.addDetector({
@@ -22,16 +22,20 @@ export const i18nFactory = (userLocaleId = 'en_US') => {
   i18n
     .use(langDetector)
     .use(initReactI18next) // if not using I18nextProvider
+
     .init({
       debug: (process.env.NODE_ENV !== 'production'),
       resources: locales,
       load: 'currentOnly',
 
-      fallbackLng: 'en_US',
+      fallbackLng: 'zh_CN',
       detection: {
         order: ['userSettingDetector', 'querystring', 'localStorage'],
       },
-
+      saveMissing: true,
+      parseMissingKeyHandler: function(res) {
+        return (process.env.NODE_ENV !== 'production') ? res : res.substring(res.lastIndexOf('.') + 1);
+      },
       interpolation: {
         escapeValue: false, // not needed for react!!
       },
@@ -45,6 +49,8 @@ export const i18nFactory = (userLocaleId = 'en_US') => {
         nsMode: 'default',
       },
     });
-
+  i18n.on('missingKey', function(lngs, namespace, key, res) {
+    console.log('missingKey::::', lngs, namespace, key, res);
+  });
   return i18n;
 };

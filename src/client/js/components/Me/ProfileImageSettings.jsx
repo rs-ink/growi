@@ -102,29 +102,29 @@ class ProfileImageSettings extends React.Component {
     return (
       <React.Fragment>
         <div className="row">
-          <div className="col-md-3 offset-1 col-sm-4">
-            <h4>
-              <div className="custom-control custom-radio radio-primary">
-                <input
-                  type="radio"
-                  id="radioGravatar"
-                  className="custom-control-input"
-                  form="formImageType"
-                  name="imagetypeForm[isGravatarEnabled]"
-                  checked={isGravatarEnabled}
-                  onChange={() => { personalContainer.changeIsGravatarEnabled(true) }}
-                />
-                <label className="custom-control-label" htmlFor="radioGravatar">
-                  <img src="https://gravatar.com/avatar/00000000000000000000000000000000?s=24" /> Gravatar
-                </label>
-                <a href="https://gravatar.com/">
-                  <small><i className="icon-arrow-right-circle" aria-hidden="true"></i></small>
-                </a>
-              </div>
-            </h4>
+          {/*<div className="col-md-3 offset-1 col-sm-4">*/}
+          {/*  <h4>*/}
+          {/*    <div className="custom-control custom-radio radio-primary">*/}
+          {/*      <input*/}
+          {/*        type="radio"*/}
+          {/*        id="radioGravatar"*/}
+          {/*        className="custom-control-input"*/}
+          {/*        form="formImageType"*/}
+          {/*        name="imagetypeForm[isGravatarEnabled]"*/}
+          {/*        checked={isGravatarEnabled}*/}
+          {/*        onChange={() => { personalContainer.changeIsGravatarEnabled(true) }}*/}
+          {/*      />*/}
+          {/*      <label className="custom-control-label" htmlFor="radioGravatar">*/}
+          {/*        <img src="https://gravatar.com/avatar/00000000000000000000000000000000?s=24" /> Gravatar*/}
+          {/*      </label>*/}
+          {/*      <a href="https://gravatar.com/">*/}
+          {/*        <small><i className="icon-arrow-right-circle" aria-hidden="true"></i></small>*/}
+          {/*      </a>*/}
+          {/*    </div>*/}
+          {/*  </h4>*/}
 
-            <img src={this.generateGravatarSrc()} width="64" />
-          </div>
+          {/*  <img src={this.generateGravatarSrc()} width="64" />*/}
+          {/*</div>*/}
 
           <div className="col-md-3 offset-1 col-sm-4">
             <h4>

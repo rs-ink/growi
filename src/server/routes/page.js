@@ -658,7 +658,7 @@ module.exports = function(crowi, app) {
     if (username !== null && path !== null) {
       return res.json(ApiResponse.error('Parameter user or path is required.'));
     }
-
+    console.log('path:::', path);
     try {
       let result = null;
       if (path == null) {

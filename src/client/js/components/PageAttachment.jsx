@@ -40,7 +40,7 @@ class PageAttachment extends React.Component {
         for (const attachment of attachments) {
           inUse[attachment._id] = this.checkIfFileInUse(attachment);
         }
-
+        console.log('attachments:', attachments);
         this.setState({
           attachments,
           inUse,
@@ -81,11 +81,11 @@ class PageAttachment extends React.Component {
           deleting: false,
         });
       }).catch((err) => {
-        this.setState({
-          deleteError: 'Something went wrong.',
-          deleting: false,
-        });
+      this.setState({
+        deleteError: 'Something went wrong.',
+        deleting: false,
       });
+    });
   }
 
   isUserLoggedIn() {
