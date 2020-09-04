@@ -91,7 +91,7 @@ Upgrading Guide: <https://docs.growi.org/en/admin-guide/upgrading/41x.html>
 * Fix: Reseting password doesn't work
 * Fix: Styles for printing
 * Fix: Unable to create page with original path after emptying trash
-* I18n: Support zh-CN
+* I18n: Support zh_CN
 
 ## v4.0.8  (Missing number)
 
