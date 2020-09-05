@@ -332,14 +332,10 @@ module.exports = function(crowi, app) {
 
   async function showPageForGrowiBehavior(req, res, next) {
     const path = getPathFromRequest(req);
-    console.log('path:==>>', path);
-    console.log('query:==>>', req.query);
 
     const revisionId = req.query.revision;
     const layoutName = configManager.getConfig('crowi', 'customize:layout');
-    console.log('layoutName:==>>', layoutName);
     let page = await Page.findByPathAndViewer(path, req.user);
-    console.log('page:==>', page);
 
     if (page == null) {
       // check the page is forbidden or just does not exist.
@@ -381,7 +377,6 @@ module.exports = function(crowi, app) {
     }
 
     await interceptorManager.process('beforeRenderPage', req, res, renderVars);
-    console.log('renderVars:==>>', renderVars);
     return res.render(view, renderVars);
   }
 
@@ -578,9 +573,13 @@ module.exports = function(crowi, app) {
     const id = req.params.id;
 
     const page = await Page.findByIdAndViewer(id, req.user);
-
+    let q = '?';
+    let a = req.url.split('?');
+    if (a.length > 1) {
+      q += a[1];
+    }
     if (page != null) {
-      return res.redirect(encodeURI(page.path));
+      return res.redirect(encodeURI(page.path) + (q.length === 1 ? '' : q));
     }
 
     return res.redirect('/');
@@ -658,7 +657,6 @@ module.exports = function(crowi, app) {
     if (username !== null && path !== null) {
       return res.json(ApiResponse.error('Parameter user or path is required.'));
     }
-    console.log('path:::', path);
     try {
       let result = null;
       if (path == null) {
