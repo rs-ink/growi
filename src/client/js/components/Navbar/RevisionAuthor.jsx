@@ -4,17 +4,13 @@ import PropTypes from 'prop-types';
 import { userPageRoot } from '@commons/util/path-utils';
 
 import UserPicture from '../User/UserPicture';
+import { withTranslation } from 'react-i18next';
 
 const RevisionAuthor = (props) => {
-  const { revisionAuthor, updatedAt, isCompactMode } = props;
+  const { revisionAuthor, updatedAt, isCompactMode,t } = props;
   const updateInfo = isCompactMode
     ? (<div>Updated at <span className="text-muted">{updatedAt}</span></div>)
-    : (
-      <div>
-        <div>Updated by <a href={userPageRoot(revisionAuthor)}>{revisionAuthor.name}</a></div>
-        <div className="text-muted text-date">{updatedAt}</div>
-      </div>
-    );
+    : (<div><div>{t("Updated by")}  <a href={userPageRoot(revisionAuthor)}>{revisionAuthor.name}</a></div><div className="text-muted">{updatedAt}</div></div>);
   const pictureSize = isCompactMode ? 'xs' : 'sm';
 
   return (
@@ -38,4 +34,4 @@ RevisionAuthor.defaultProps = {
   isCompactMode: false,
 };
 
-export default RevisionAuthor;
+export default withTranslation()(RevisionAuthor);
